@@ -31,6 +31,28 @@ class IsMattModule(torch.nn.Module):
         super(IsMattModule, self).__init__()
         self.vgg16 = torchvision.models.vgg16(pretrained=True)
 
+        for p in self.vgg16.parameters():
+            p.requires_grad = False
+
+        # XXX: UNTESTED!
+        self.f1 = torch.nn.Sequential(
+            torch.nn.MaxPool2d(1000, stride=1),
+            torch.nn.Linear(2048, 2048),
+            torch.nn.ReLU(),
+            torch.nn.Linear(2048, 1),
+            torch.nn.Sigmoid(),
+        )
+
+        # XXX: UNTESTED!
+        self.f2 =  torch.nn.Sequential(
+            torch.nn.MaxPool2d(1000, stride=1),
+            torch.nn.Linear(2048, 2048),
+            torch.nn.ReLU(),
+            torch.nn.Linear(2048, 4),
+            torch.nn.Sigmoid(),
+        )
+
+
     def forward(self, x):
         x = self.vgg16(x)
         return x
@@ -42,16 +64,16 @@ if __name__ == "__main__":
     arr = transform(img.convert("RGB"))
     arr = torch.unsqueeze(arr, 0).to("cuda")
 
-    with open("imagenet_class_index.json", "r") as fi:
-        labels = json.load(fi)
 
-    labels = {
-        int(k): v[-1]
-        for k, v in labels.items()
-    }
+    with open("imagenet_class_index.json", "r") as fi:
+        labels =  {
+            int(k): v[-1]
+            for k, v in json.load(fi).items()
+        }
 
     model = IsMattModule()
 
-    for i in range(300):
-        probs = model(arr)
-        idx = torch.argmax(probs)
+    print(model)
+
+    probs = model(arr)
+    idx = torch.argmax(probs)
