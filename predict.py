@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 
-
 import json
 import numpy
 import torch
+import torch.nn.functional as F
 import torchvision
+import warnings
 
+from collections import defaultdict
+from glob import glob
+from PIL import Image
 from torchvision import transforms
 
-from PIL import Image
 
 torch.set_default_device('cuda')
 
-import warnings
 warnings.filterwarnings('ignore', category=UserWarning, message='TypedStorage is deprecated')
 
 
@@ -29,24 +31,27 @@ class IsMattModule(torch.nn.Module):
 
     def __init__(self):
         super(IsMattModule, self).__init__()
-        self.vgg16 = torchvision.models.vgg16(pretrained=True)
 
-        for p in self.vgg16.parameters():
+        vgg16 = torchvision.models.vgg16(weights=torchvision.models.vgg.VGG16_Weights.DEFAULT)
+
+        self.model = vgg16.features
+
+        for p in self.model.parameters():
             p.requires_grad = False
 
-        # XXX: UNTESTED!
-        self.f1 = torch.nn.Sequential(
-            torch.nn.MaxPool2d(1000, stride=1),
-            torch.nn.Linear(2048, 2048),
+        self.face = torch.nn.Sequential(
+            torch.nn.AdaptiveMaxPool2d(1),
+            torch.nn.Flatten(),
+            torch.nn.Linear(512, 2048),
             torch.nn.ReLU(),
             torch.nn.Linear(2048, 1),
             torch.nn.Sigmoid(),
         )
 
-        # XXX: UNTESTED!
-        self.f2 =  torch.nn.Sequential(
-            torch.nn.MaxPool2d(1000, stride=1),
-            torch.nn.Linear(2048, 2048),
+        self.loc =  torch.nn.Sequential(
+            torch.nn.AdaptiveMaxPool2d(1),
+            torch.nn.Flatten(),
+            torch.nn.Linear(512, 2048),
             torch.nn.ReLU(),
             torch.nn.Linear(2048, 4),
             torch.nn.Sigmoid(),
@@ -54,8 +59,17 @@ class IsMattModule(torch.nn.Module):
 
 
     def forward(self, x):
-        x = self.vgg16(x)
-        return x
+        x = self.model(x)
+        return self.face(x), self.loc(x)
+
+
+def load_image(path):
+    """Return a PIL image from  apath"""
+    img = Image.open(path)
+    return img
+    arr = transform(img.convert("RGB"))
+    arr = torch.unsqueeze(arr, 0).to("cuda")
+    return arr
 
 
 if __name__ == "__main__":
@@ -63,7 +77,6 @@ if __name__ == "__main__":
     img = Image.open("heart.png")
     arr = transform(img.convert("RGB"))
     arr = torch.unsqueeze(arr, 0).to("cuda")
-
 
     with open("imagenet_class_index.json", "r") as fi:
         labels =  {
@@ -73,7 +86,7 @@ if __name__ == "__main__":
 
     model = IsMattModule()
 
-    print(model)
+    face, loc = model(arr)
 
-    probs = model(arr)
-    idx = torch.argmax(probs)
+    print(face.shape)
+    print(loc.shape)
