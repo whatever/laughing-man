@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
 
+import matplotlib.pyplot as plot
+import numpy as np
 import json
 import numpy
 import torch
 import torchvision
+
+import torchvision.transforms.functional as F
 
 from torchvision import transforms
 
@@ -63,19 +67,49 @@ class IsMattModule(torch.nn.Module):
 def load_image(path):
     """Return a PIL image from  apath"""
     img = Image.open(path)
-    return img
     arr = transform(img.convert("RGB"))
     arr = torch.unsqueeze(arr, 0).to("cuda")
     return arr
 
 
+def show_image(img):
+    plot.figure()
+    plot.imshow(F.to_pil_image(img.to("cpu")))
+    plot.show()
+
+
 if __name__ == "__main__":
 
-    for fname in glob("capture/imgs/*.jpg"):
-        print(fname)
+    img1 = torchvision.io.read_image("heart.png")
+    img1 = img1[None, :, :, :]
 
-    with open("") as fi:
-        json.load(fi)
+    print(img1.shape)
+
+    img2 = load_image("heart.png")
+
+    print(img2.shape)
+
+    show_image(img1[0])
+
+    raise SystemExit
+
+    fnames = [
+        fname
+        for fname in glob("imgs-annotated/*.json")
+    ]
+
+    images = [
+        load_image(fname)
+        for fname in glob("imgs/*.jpg")
+    ]
+
+    print(images)
+
+
+    raise SystemExit
+
+    for fname in glob("imgs/*.jpg"):
+        print(fname)
 
 
 
