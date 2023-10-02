@@ -1,2 +1,5 @@
 *.swp
 *.png
+*.jpg
+*.json
+.DS_Store

@@ -2,7 +2,11 @@
 
 
 import cv2
+import os.path
 import signal
+
+
+from datetime import datetime, timedelta
 
 
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -15,8 +19,34 @@ def cleanup():
 
 
 def capture():
+
+    org = (50, 50)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    fontScale = 1
+    color = (255, 255, 255)
+    thickness = 2
+
+
+    checkpoint = datetime.now()
+
+    i = 0
+
     while True:
         ret, frame = cap.read()
+
+        delta = datetime.now() - checkpoint
+
+
+        if delta > timedelta(seconds=1):
+            ts = int(datetime.now().timestamp())
+            fname = os.path.join(
+                "imgs",
+                f"img-{ts}-{i}.jpg",
+            )
+            print("SNAP! Took a photo here:", fname)
+            cv2.imwrite(fname, frame)
+            i += 1
+            checkpoint = datetime.now()
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -44,7 +74,19 @@ def capture():
             roi_color = frame[y:y+h, x:x+w]
 
 
+        cv2.putText(
+            frame,
+            f"countdown...{delta.seconds}.{delta.microseconds/1000:.02f}",
+            org,
+            font,
+            fontScale,
+            color,
+            thickness,
+            cv2.LINE_AA,
+        )
+
         cv2.imshow('frame', frame)
+
 
 
         if cv2.waitKey(1) == ord('q'):
