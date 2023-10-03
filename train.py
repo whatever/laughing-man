@@ -66,8 +66,10 @@ class IsMattModule(torch.nn.Module):
     """..."""
 
     def __init__(self):
+
         super(IsMattModule, self).__init__()
-        self.vgg16 = torchvision.models.vgg16(pretrained=True)
+
+        self.vgg16 = torchvision.models.vgg16(weights=VGG16_Weights.DEFAULT).to("cuda")
 
         for p in self.vgg16.parameters():
             p.requires_grad = False
@@ -81,7 +83,7 @@ class IsMattModule(torch.nn.Module):
             torch.nn.Sigmoid(),
         )
 
-        self.loc =  torch.nn.Sequential(
+        self.loc = torch.nn.Sequential(
             torch.nn.AdaptiveMaxPool2d(1),
             torch.nn.Flatten(),
             torch.nn.Linear(512, 2048),
@@ -90,16 +92,13 @@ class IsMattModule(torch.nn.Module):
             torch.nn.Sigmoid(),
         )
 
-
     def forward(self, x):
-        x = self.vgg16(x)
-        return x
+        x = self.vgg16.features(x)
+        return self.face(x), self.loc(x)
 
 
 def load_image_old(path):
     """Return a PIL image from  apath"""
-    img = Image.open(path)
-    return img.convert("RGB")
     # arr = transform(img.convert("RGB"))
     # arr = torch.unsqueeze(arr, 0).to("cuda")
     return arr
@@ -108,24 +107,24 @@ def load_image_old(path):
 def show_image(img, bboxes=list()):
     """Show a channels first image"""
 
-    frame = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
-    w, h, _ = frame.shape
+    for i in range(img.shape[0]):
+        arr = img[i].cpu().numpy()
+        arr = np.moveaxis(arr, 0, 2)
+        frame = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
 
-    if len(bboxes) == 0:
-        print("No bounding box")
+        w, h, _ = frame.shape
 
-    for bb in bboxes:
-        print("Bounding Box:", bb)
-        cv2.rectangle(
-            frame,
-            (int(bb[0]*w), int(bb[1]*h)),
-            (int(bb[2]*w), int(bb[3]*h)),
-            (255, 0, 0),
-            2,
-        )
+        for bb in bboxes:
+            cv2.rectangle(
+                frame,
+                (int(bb[0]*w), int(bb[1]*h)),
+                (int(bb[2]*w), int(bb[3]*h)),
+                (0, 255, 255),
+                2,
+            )
 
-    cv2.imshow("image", frame)
+        cv2.imshow("image", frame)
 
 
 def get_label_fname(image_fname):
@@ -137,14 +136,23 @@ def get_label_fname(image_fname):
 
 
 def load_image(image_path, f=transform):
-    with Image.open(image_path) as img:
-        return img.convert("RGB")
+    with Image.open(image_path) as arr:
+        arr = arr.convert("RGB")
+        arr = transform(arr)
+        arr = torch.unsqueeze(arr, 0)
+        arr = arr.cuda()
+        return arr
 
 
 def load_label(label_path):
     with open (label_path, "r") as fi:
         label = json.load(fi)
-    return np.array([label["class"]]).astype(np.uint8), np.array(label["bbox"]).astype(np.float16)
+    bbox = label["bbox"]
+    bbox = bbox if bbox else [[0.0]*4]
+    return (
+        torch.tensor([[label["class"]]], dtype=torch.uint8),
+        torch.tensor(bbox, dtype=torch.float32),
+    )
 
 
 def dataset(partition):
@@ -168,129 +176,80 @@ def dataset(partition):
         yield load_image(image_fname), load_label(label_fname)
 
 
+with open("imagenet_class_index.json", "r") as fi:
+    LABELS =  {
+        int(k): v[-1]
+        for k, v in json.load(fi).items()
+    }
+
+
+def predict(arr):
+    probs = model(arr)
+    return probs
+    idx = torch.argmax(probs)
+    return LABELS[int(idx)]
+
 
 if __name__ == "__main__":
 
 
-    images = defaultdict(list)
-
-    labels = defaultdict(list)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--epochs", type=int, default=10)
+    args = parser.parse_args()
 
     print("Print showing 5 images to sanity-check")
+
+    model = IsMattModule()
+
+    optim = torch.optim.Adam(
+        model.parameters(),
+        lr=0.001,
+    )
+
+    if 
+
+
+    # Samples
 
     sample = dataset("train")
     sample = [next(sample) for _ in range(5)]
 
+    """
     for img, bb in sample:
         show_image(img, bb[1])
-        print(bb)
         cv2.waitKey(0)
+        print("Predict =", predict(img))
+    else:
         cv2.destroyAllWindows()
+    """
 
-    raise SystemExit
+    for epoch in range(args.epochs):
 
-    print(type(img))
-    print(type(img))
+        optim.zero_grad()
 
-    show_image(img)
+        last_loss = 0.0
 
+        for img, bbox in dataset("train"):
+            y_hat_face, y_hat_loca = model(img)
 
-    img2 = transform(load_image_old("heart.png"))
-    print(type(img2))
-    print(img2.shape)
+            loca_loss = torch.nn.functional.mse_loss(y_hat_loca, bbox[1])
+            face_loss = torch.nn.functional.binary_cross_entropy(y_hat_face, bbox[0].float())
+            loss = 0.5*loca_loss + 0.5*face_loss
 
+            loss.backward()
 
+            optim.step()
 
-    raise SystemExit
-    
+            last_loss += loss
 
-    for partition in ["train", "test", "validate"]:
-        for label_fname in glob(f"data/{partition}/labels/*.json"):
-            image_fname = label_fname.replace("labels", "images").replace(".json", ".jpg")
-            aug_fname = os.path.join("aug_data", partition, "labels", os.path.basename(label_fname))
+        print("epoch .........", epoch)
+        print("batch loss ....", last_loss)
 
+    path = "model.pt"
 
-
-            if not os.path.exists(image_fname):
-                annotation["bbox"] = [0]*4
-                annotation["class"] = 0
-
-            with open(aug_fname, "w") as f:
-                # json.dump(aug_
-                pass
-
-            print(label_fname)
-            print(image_fname)
-            print(aug_fname)
-
-
-
-
-    raise SystemExit
-
-    with open("imagenet_class_index.json", "r") as fi:
-        labels =  {
-            int(k): v[-1]
-            for k, v in json.load(fi).items()
-        }
-
-    img1 = torchvision.io.read_image("heart.png")
-    img1 = img1[None, :, :, :]
-
-    arr = load_image("heart.png")
-    show_image(arr[0])
-    model = IsMattModule()
-    probs = model(arr)
-    idx = torch.argmax(probs)
-
-    print("Image is:", labels[int(idx)])
-
-    raise SystemExit
-
-    img1 = torchvision.io.read_image("heart.png")
-    img1 = img1[None, :, :, :]
-
-    print(img1.shape)
-
-    img2 = load_image("heart.png")
-
-    print(img2.shape)
-
-    show_image(img1[0])
-
-    raise SystemExit
-
-    fnames = [
-        fname
-        for fname in glob("imgs-annotated/*.json")
-    ]
-
-    images = [
-        load_image(fname)
-        for fname in glob("imgs/*.jpg")
-    ]
-
-    print(images)
-
-
-    raise SystemExit
-
-    for fname in glob("imgs/*.jpg"):
-        print(fname)
-
-
-
-    raise SystemExit
-
-    arr = load_image("heart.png")
-
-
-    with open("imagenet_class_index.json", "r") as fi:
-        labels =  {
-            int(k): v[-1]
-            for k, v in json.load(fi).items()
-        }
-
-    model = IsMattModule()
-    probs = model(arr)
-    idx = torch.argmax(probs)
+    torch.save({
+        "epoch": epoch,
+        "model_state_dict": model.state_dict(),
+        "optim_state_dict": optim.state_dict(),
+        "loss": last_loss,
+    }, path)
