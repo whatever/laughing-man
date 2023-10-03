@@ -2,6 +2,7 @@
 
 
 import albumentations as alb
+import argparse
 import cv2
 import logging
 import matplotlib.pyplot as plot
@@ -13,11 +14,12 @@ import random
 import torch
 import torchvision
 
-import torchvision.transforms.functional as F
+import torch.nn.functional as F
 
 from collections import defaultdict
 
 from torchvision import transforms
+import torchvision.models.vgg as vgg
 
 from PIL import Image
 
@@ -69,13 +71,14 @@ class IsMattModule(torch.nn.Module):
 
         super(IsMattModule, self).__init__()
 
-        self.vgg16 = torchvision.models.vgg16(weights=VGG16_Weights.DEFAULT).to("cuda")
+        self.vgg16 = torchvision.models.vgg16(weights=vgg.VGG16_Weights.DEFAULT).to("cuda")
 
         for p in self.vgg16.parameters():
             p.requires_grad = False
 
+        self.glob = torch.nn.AdaptiveMaxPool2d(1)
+
         self.face = torch.nn.Sequential(
-            torch.nn.AdaptiveMaxPool2d(1),
             torch.nn.Flatten(),
             torch.nn.Linear(512, 2048),
             torch.nn.ReLU(),
@@ -84,7 +87,6 @@ class IsMattModule(torch.nn.Module):
         )
 
         self.loc = torch.nn.Sequential(
-            torch.nn.AdaptiveMaxPool2d(1),
             torch.nn.Flatten(),
             torch.nn.Linear(512, 2048),
             torch.nn.ReLU(),
@@ -94,14 +96,16 @@ class IsMattModule(torch.nn.Module):
 
     def forward(self, x):
         x = self.vgg16.features(x)
-        return self.face(x), self.loc(x)
+        print(x.shape)
 
+        loc = F.max_pool2d(x, kernel_size=7)
+        fac = F.max_pool2d(x, kernel_size=7)
 
-def load_image_old(path):
-    """Return a PIL image from  apath"""
-    # arr = transform(img.convert("RGB"))
-    # arr = torch.unsqueeze(arr, 0).to("cuda")
-    return arr
+        print(self.glob(x).shape)
+        print(loc.shape)
+        print(fac.shape)
+
+        return self.face(loc), self.loc(fac)
 
 
 def show_image(img, bboxes=list()):
@@ -195,9 +199,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--checkpoint", type=str, default=None)
+    parser.add_argument("--display", action="store_true")
     args = parser.parse_args()
-
-    print("Print showing 5 images to sanity-check")
 
     model = IsMattModule()
 
@@ -206,8 +210,23 @@ if __name__ == "__main__":
         lr=0.001,
     )
 
-    if 
+    if args.checkpoint:
+        checkpoint = torch.load(args.checkpoint)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optim.load_state_dict(checkpoint["optim_state_dict"])
+        epoch = checkpoint["epoch"]
+        loss = checkpoint["loss"]
 
+
+
+
+        print("+===========================+")
+        print("| epoch ..............", epoch)
+        print("| batch loss .........", loss)
+        print("+===========================+")
+        print()
+        print()
+        print()
 
     # Samples
 
@@ -223,33 +242,67 @@ if __name__ == "__main__":
         cv2.destroyAllWindows()
     """
 
+
     for epoch in range(args.epochs):
+
+        print("+===========================+")
+        print("| epoch ..............", epoch)
 
         optim.zero_grad()
 
+        i = 0
         last_loss = 0.0
+        last_loca_loss = 0.0
+        last_face_loss = 0.0
 
         for img, bbox in dataset("train"):
             y_hat_face, y_hat_loca = model(img)
 
             loca_loss = torch.nn.functional.mse_loss(y_hat_loca, bbox[1])
             face_loss = torch.nn.functional.binary_cross_entropy(y_hat_face, bbox[0].float())
-            loss = 0.5*loca_loss + 0.5*face_loss
+            loss = loca_loss + 0.5*face_loss
 
             loss.backward()
 
             optim.step()
 
+            last_loca_loss += loca_loss
+            last_face_loss += face_loss
             last_loss += loss
+            i += 1
 
-        print("epoch .........", epoch)
-        print("batch loss ....", last_loss)
 
-    path = "model.pt"
+        print("| batch loca loss ....", last_loca_loss)
+        print("| batch face loss ....", last_face_loss)
+        print("| batch loss .........", last_loss/i)
+        print("+===========================+")
+        print()
+
+
+        samp = dataset("validate")
+        samp = [next(samp) for _ in range(5)]
+
+        for img, bb in samp:
+            y_hat_face, y_hat_loca = model(img)
+            print(y_hat_face, bb[0])
+            print(y_hat_loca, bb[1])
+
+
+
+
+    if args.display:
+        samp = dataset("validate")
+        samp = [next(samp) for _ in range(5)]
+        for img, bb in samp:
+            y_hat_face, y_hat_loca = model(img)
+            print(y_hat_face)
+            print(y_hat_loca)
+            show_image(img, bb[1])
+            cv2.waitKey(0)
 
     torch.save({
         "epoch": epoch,
         "model_state_dict": model.state_dict(),
         "optim_state_dict": optim.state_dict(),
         "loss": last_loss,
-    }, path)
+    }, args.checkpoint)
