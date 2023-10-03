@@ -2,6 +2,7 @@
 
 
 import albumentations as alb
+import cv2
 import matplotlib.pyplot as plot
 import numpy as np
 import json
@@ -31,6 +32,8 @@ transform = transforms.Compose([
 ])
 
 
+# ALBUMENTATION
+
 ts = [
     alb.RandomCrop(width=450, height=450),
     alb.HorizontalFlip(p=0.5),
@@ -45,8 +48,6 @@ bbox_params = alb.BboxParams(
     label_fields=["class_labels"],
 )
 
-
-
 augmentor = alb.Compose(ts, bbox_params)
 
 
@@ -60,19 +61,19 @@ class IsMattModule(torch.nn.Module):
         for p in self.vgg16.parameters():
             p.requires_grad = False
 
-        # XXX: UNTESTED!
-        self.f1 = torch.nn.Sequential(
-            torch.nn.MaxPool2d(1000, stride=1),
-            torch.nn.Linear(2048, 2048),
+        self.face = torch.nn.Sequential(
+            torch.nn.AdaptiveMaxPool2d(1),
+            torch.nn.Flatten(),
+            torch.nn.Linear(512, 2048),
             torch.nn.ReLU(),
             torch.nn.Linear(2048, 1),
             torch.nn.Sigmoid(),
         )
 
-        # XXX: UNTESTED!
-        self.f2 =  torch.nn.Sequential(
-            torch.nn.MaxPool2d(1000, stride=1),
-            torch.nn.Linear(2048, 2048),
+        self.loc =  torch.nn.Sequential(
+            torch.nn.AdaptiveMaxPool2d(1),
+            torch.nn.Flatten(),
+            torch.nn.Linear(512, 2048),
             torch.nn.ReLU(),
             torch.nn.Linear(2048, 4),
             torch.nn.Sigmoid(),
@@ -100,6 +101,31 @@ def show_image(img):
 
 if __name__ == "__main__":
 
+    # fname = "/home/matt/git/whatever/laughing-person/data/test/images/img-1696267450-4.jpg"
+    # frame  = cv2.imread(fname)
+    # print(frame.shape)
+
+
+
+    for fname in glob("data/test/labels/*.json"):
+        with open(fname, "r") as fi:
+            label = json.load(fi)
+
+        shapes = label["shapes"]
+        assert len(shapes) == 1
+
+
+        shape = shapes[0]
+
+        p0 = shape["points"][0]
+        p1 = shape["points"][1]
+
+        x0 = min(p0[0], p1[0])
+        x1 = max(p0[0], p1[0])
+        y0 = min(p0[1], p1[1])
+        y1 = max(p0[1], p1[1])
+
+        print([x0, y0], [x1, y1])
 
 
 
