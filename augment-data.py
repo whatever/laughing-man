@@ -283,6 +283,7 @@ if __name__ == "__main__":
                 annotation = {
                     "bbox": res["bbox"],
                     "class": res["class"],
+                    "image": f"{aug_basename}.jpg",
                 }
 
                 aug_img = Image.fromarray(aug["image"])
