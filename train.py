@@ -34,8 +34,10 @@ transform = transforms.Compose([
 
 # ALBUMENTATION
 
+CROP_WIDTH = CROP_HEIGHT = 1000
+
 ts = [
-    alb.RandomCrop(width=1000, height=1000),
+    alb.RandomCrop(width=CROP_WIDTH, height=CROP_HEIGHT),
     alb.HorizontalFlip(p=0.5),
     alb.VerticalFlip(p=0.5),
     alb.RandomBrightnessContrast(p=0.2),
@@ -101,15 +103,21 @@ def show_image(img):
     plot.show()
 
 
-def convert_coords():
-    pass
+def show_augmented_image(aug):
+    img = aug["image"].copy()
+    for bb in aug["bboxes"]:
+        cv2.rectangle(
+            img,
+            tuple(np.multiply(aug["bboxes"][0][0:2], CROP_WIDTH).astype(int)),
+            tuple(np.multiply(aug["bboxes"][0][2:], CROP_HEIGHT).astype(int)),
+            (0, 255, 0),
+            2,
+        )
+    show_image(img)
+
 
 
 if __name__ == "__main__":
-
-    # fname = "/home/matt/git/whatever/laughing-person/data/test/images/img-1696267450-4.jpg"
-    # frame  = cv2.imread(fname)
-    # print(frame.shape)
 
 
     for fname in glob("data/test/labels/*.json"):
@@ -162,23 +170,8 @@ if __name__ == "__main__":
             class_labels=["matt-face"],
         )
 
+        show_augmented_image(augmented_image)
 
-        print(augmented_image)
-
-        for bb in augmented_image["bboxes"]:
-            cv2.rectangle(
-                augmented_image["image"],
-                tuple(np.multiply(augmented_image["bboxes"][0][0:2], 1000).astype(int)),
-                tuple(np.multiply(augmented_image["bboxes"][0][2:], 1000).astype(int)),
-                (0, 255, 0),
-                2,
-            )
-        show_image(augmented_image["image"])
-
-        # frame = cv2.imread(image_fname)
-        # cv2.rectangle(frame, int_coords[0:2], int_coords[2:4], (0, 255, 0), 2)
-        # cv2.imshow("Image", frame)
-        # cv2.waitKey(0)
 
     cv2.destroyAllWindows()
 
