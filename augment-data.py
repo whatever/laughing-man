@@ -261,8 +261,8 @@ if __name__ == "__main__":
                     class_labels=["face"],
                 )
 
-                aug_basename = "{}-{}.json".format(
-                    os.path.basename(image_fname).replace(".json", ""),
+                aug_basename = "{}-{}".format(
+                    os.path.basename(image_fname).replace(".jpg", ""),
                     i,
                 )
 
@@ -285,7 +285,8 @@ if __name__ == "__main__":
                     "class": res["class"],
                 }
 
-                cv2.imwrite(aug_image_fname, aug["image"])
+                aug_img = Image.fromarray(aug["image"])
+                aug_img.save(aug_image_fname)
 
                 with open(aug_label_fname, "w") as f:
                     json.dump(annotation, f)
