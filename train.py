@@ -112,7 +112,6 @@ if __name__ == "__main__":
     # print(frame.shape)
 
 
-
     for fname in glob("data/test/labels/*.json"):
         with open(fname, "r") as fi:
             label = json.load(fi)
@@ -166,6 +165,14 @@ if __name__ == "__main__":
 
         print(augmented_image)
 
+        for bb in augmented_image["bboxes"]:
+            cv2.rectangle(
+                augmented_image["image"],
+                tuple(np.multiply(augmented_image["bboxes"][0][0:2], 1000).astype(int)),
+                tuple(np.multiply(augmented_image["bboxes"][0][2:], 1000).astype(int)),
+                (0, 255, 0),
+                2,
+            )
         show_image(augmented_image["image"])
 
         # frame = cv2.imread(image_fname)
