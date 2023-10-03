@@ -35,7 +35,7 @@ transform = transforms.Compose([
 # ALBUMENTATION
 
 ts = [
-    alb.RandomCrop(width=450, height=450),
+    alb.RandomCrop(width=1000, height=1000),
     alb.HorizontalFlip(p=0.5),
     alb.VerticalFlip(p=0.5),
     alb.RandomBrightnessContrast(p=0.2),
@@ -101,6 +101,10 @@ def show_image(img):
     plot.show()
 
 
+def convert_coords():
+    pass
+
+
 if __name__ == "__main__":
 
     # fname = "/home/matt/git/whatever/laughing-person/data/test/images/img-1696267450-4.jpg"
@@ -122,22 +126,52 @@ if __name__ == "__main__":
         p0 = shape["points"][0]
         p1 = shape["points"][1]
 
-        x0 = min(p0[0], p1[0])
-        x1 = max(p0[0], p1[0])
-        y0 = min(p0[1], p1[1])
-        y1 = max(p0[1], p1[1])
+        coords = [
+            min(p0[0], p1[0]),
+            min(p0[1], p1[1]),
+            max(p0[0], p1[0]),
+            max(p0[1], p1[1]),
+        ]
+
+        int_coords = [int(p) for p in coords]
 
         image_fname = fname.replace("labels", "images").replace(".json", ".jpg")
-        frame = cv2.imread(image_fname)
-        cv2.imshow("Image", frame)
-        cv2.waitKey(0)
+
+        img = Image.open(image_fname).convert("RGB")
+
+        w, h = img.size
+
+        # Bounding Box Coords (normalized)
+        bb = [
+            coords[0] / w,
+            coords[1] / h,
+            coords[2] / w,
+            coords[3] / h,
+        ]
+
+        # Preview and debug log
+
+        print("image fname.......", image_fname)
+        print("coords............", coords)
+        print("width x height....", w, h)
+        print("bounding box......", bb)
 
 
-        raise "Start here... see what happens with drawing bounding box"
+        augmented_image = augmentor(
+            image=np.array(img),
+            bboxes=[bb],
+            class_labels=["matt-face"],
+        )
 
 
-        # img = Image.open(image_fname).convert("RGB")
-        # show_image(img)
+        print(augmented_image)
+
+        show_image(augmented_image["image"])
+
+        # frame = cv2.imread(image_fname)
+        # cv2.rectangle(frame, int_coords[0:2], int_coords[2:4], (0, 255, 0), 2)
+        # cv2.imshow("Image", frame)
+        # cv2.waitKey(0)
 
     cv2.destroyAllWindows()
 
