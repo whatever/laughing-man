@@ -88,14 +88,16 @@ class IsMattModule(torch.nn.Module):
 def load_image(path):
     """Return a PIL image from  apath"""
     img = Image.open(path)
-    arr = transform(img.convert("RGB"))
-    arr = torch.unsqueeze(arr, 0).to("cuda")
+    return img.convert("RGB")
+    # arr = transform(img.convert("RGB"))
+    # arr = torch.unsqueeze(arr, 0).to("cuda")
     return arr
 
 
 def show_image(img):
     plot.figure()
-    plot.imshow(F.to_pil_image(img.to("cpu")))
+    plot.imshow(img)
+    # plot.imshow(F.to_pil_image(img.to("cpu")))
     plot.show()
 
 
@@ -125,7 +127,19 @@ if __name__ == "__main__":
         y0 = min(p0[1], p1[1])
         y1 = max(p0[1], p1[1])
 
-        print([x0, y0], [x1, y1])
+        image_fname = fname.replace("labels", "images").replace(".json", ".jpg")
+        frame = cv2.imread(image_fname)
+        cv2.imshow("Image", frame)
+        cv2.waitKey(0)
+
+
+        raise "Start here... see what happens with drawing bounding box"
+
+
+        # img = Image.open(image_fname).convert("RGB")
+        # show_image(img)
+
+    cv2.destroyAllWindows()
 
 
 
