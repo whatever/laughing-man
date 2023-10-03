@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 
+import albumentations as alb
 import matplotlib.pyplot as plot
 import numpy as np
 import json
@@ -28,6 +29,25 @@ transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
 ])
+
+
+ts = [
+    alb.RandomCrop(width=450, height=450),
+    alb.HorizontalFlip(p=0.5),
+    alb.VerticalFlip(p=0.5),
+    alb.RandomBrightnessContrast(p=0.2),
+    alb.RandomGamma(p=0.2),
+    alb.RGBShift(p=0.2),
+]
+
+bbox_params = alb.BboxParams(
+    format="albumentations",
+    label_fields=["class_labels"],
+)
+
+
+
+augmentor = alb.Compose(ts, bbox_params)
 
 
 class IsMattModule(torch.nn.Module):

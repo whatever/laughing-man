@@ -1,4 +1,5 @@
-matplotlib
+albumentations
+matplotlib==3.8.0
 torch==2.0.1
 torchvision==0.15.2
 Pillow==10.0.1
