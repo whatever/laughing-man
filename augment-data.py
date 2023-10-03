@@ -51,16 +51,6 @@ def load_image(path):
     """Return a PIL image from  apath"""
     img = Image.open(path)
     return img.convert("RGB")
-    # arr = transform(img.convert("RGB"))
-    # arr = torch.unsqueeze(arr, 0).to("cuda")
-    return arr
-
-
-def show_image(img):
-    plot.figure()
-    plot.imshow(img)
-    # plot.imshow(F.to_pil_image(img.to("cpu")))
-    plot.show()
 
 
 def show_augmented_image(aug):
@@ -74,26 +64,6 @@ def show_augmented_image(aug):
             2,
         )
     show_image(img)
-
-
-def get_standardized_bbox(label_fname):
-    """Convert a bounding box to the standard format"""
-
-    with open(label_fname, "r") as f:
-        label = json.load(f)
-
-    shapes = label["shapes"]
-
-    assert len(shapes) == 1
-
-    shape = shapes[0]
-
-    return [
-        bbox[0],
-        bbox[1],
-        bbox[0] + bbox[2],
-        bbox[1] + bbox[3],
-    ]
 
 
 def get_label_fname(image_fname):
@@ -186,9 +156,12 @@ if __name__ == "__main__":
                     f"{aug_basename}.json",
                 )
 
+
+                assert(len(aug["class_labels"]) < 2)
+
                 annotation = {
-                    "bbox": res["bbox"],
-                    "class": res["class"],
+                    "bbox": aug.get("bboxes", [0., 0., 0., 0.]),
+                    "class": len(aug["class_labels"]),
                     "image": f"{aug_basename}.jpg",
                 }
 
