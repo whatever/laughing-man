@@ -80,6 +80,31 @@ def show_image(img):
 
 if __name__ == "__main__":
 
+
+
+
+
+    raise SystemExit
+
+    with open("imagenet_class_index.json", "r") as fi:
+        labels =  {
+            int(k): v[-1]
+            for k, v in json.load(fi).items()
+        }
+
+    img1 = torchvision.io.read_image("heart.png")
+    img1 = img1[None, :, :, :]
+
+    arr = load_image("heart.png")
+    show_image(arr[0])
+    model = IsMattModule()
+    probs = model(arr)
+    idx = torch.argmax(probs)
+
+    print("Image is:", labels[int(idx)])
+
+    raise SystemExit
+
     img1 = torchvision.io.read_image("heart.png")
     img1 = img1[None, :, :, :]
 
@@ -125,8 +150,5 @@ if __name__ == "__main__":
         }
 
     model = IsMattModule()
-
-    print(model)
-
     probs = model(arr)
     idx = torch.argmax(probs)
