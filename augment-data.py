@@ -25,17 +25,10 @@ import warnings
 warnings.filterwarnings('ignore', category=UserWarning, message='TypedStorage is deprecated')
 
 
-transform = transforms.Compose([
-    transforms.Resize(size=256),
-    transforms.CenterCrop(size=224),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-])
-
-
 # ALBUMENTATION
 
 CROP_WIDTH = CROP_HEIGHT = 1000
+
 
 ts = [
     alb.RandomCrop(width=CROP_WIDTH, height=CROP_HEIGHT),
@@ -52,40 +45,6 @@ bbox_params = alb.BboxParams(
 )
 
 augmentor = alb.Compose(ts, bbox_params)
-
-
-class IsMattModule(torch.nn.Module):
-    """..."""
-
-    def __init__(self):
-        super(IsMattModule, self).__init__()
-        self.vgg16 = torchvision.models.vgg16(pretrained=True)
-
-        for p in self.vgg16.parameters():
-            p.requires_grad = False
-
-        self.face = torch.nn.Sequential(
-            torch.nn.AdaptiveMaxPool2d(1),
-            torch.nn.Flatten(),
-            torch.nn.Linear(512, 2048),
-            torch.nn.ReLU(),
-            torch.nn.Linear(2048, 1),
-            torch.nn.Sigmoid(),
-        )
-
-        self.loc =  torch.nn.Sequential(
-            torch.nn.AdaptiveMaxPool2d(1),
-            torch.nn.Flatten(),
-            torch.nn.Linear(512, 2048),
-            torch.nn.ReLU(),
-            torch.nn.Linear(2048, 4),
-            torch.nn.Sigmoid(),
-        )
-
-
-    def forward(self, x):
-        x = self.vgg16(x)
-        return x
 
 
 def load_image(path):
@@ -197,59 +156,6 @@ def get_image_and_label(image_fname):
 
 
 if __name__ == "__main__":
-
-
-    """
-    for fname in glob("data/test/labels/*.json"):
-        with open(fname, "r") as fi:
-            label = json.load(fi)
-
-        shapes = label["shapes"]
-        assert len(shapes) == 1
-
-
-        shape = shapes[0]
-
-        int_coords = [int(p) for p in coords]
-
-        image_fname = fname.replace("labels", "images").replace(".json", ".jpg")
-
-        img = Image.open(image_fname).convert("RGB")
-
-        w, h = img.size
-
-        # Bounding Box Coords (normalized)
-        bb = [
-            coords[0] / w,
-            coords[1] / h,
-            coords[2] / w,
-            coords[3] / h,
-        ]
-
-        # Preview and debug log
-
-        print("image fname.......", image_fname)
-        print("coords............", coords)
-        print("width x height....", w, h)
-        print("bounding box......", bb)
-
-
-        augmented_image = augmentor(
-            image=np.array(img),
-            bboxes=[bb],
-            class_labels=["matt-face"],
-        )
-
-        show_augmented_image(augmented_image)
-
-
-    cv2.destroyAllWindows()
-    """
-
-
-    # Modify data
-
-
     for partition in ["train", "test", "validate"]:
         for image_fname in glob(f"data/{partition}/images/*.jpg"):
             res, img = get_image_and_label(image_fname)
@@ -291,97 +197,3 @@ if __name__ == "__main__":
 
                 with open(aug_label_fname, "w") as f:
                     json.dump(annotation, f)
-
-
-    raise SystemExit
-
-    for partition in ["train", "test", "validate"]:
-        for label_fname in glob(f"data/{partition}/labels/*.json"):
-            image_fname = label_fname.replace("labels", "images").replace(".json", ".jpg")
-            aug_fname = os.path.join("aug_data", partition, "labels", os.path.basename(label_fname))
-
-
-
-            if not os.path.exists(image_fname):
-                annotation["bbox"] = [0]*4
-                annotation["class"] = 0
-
-            with open(aug_fname, "w") as f:
-                # json.dump(aug_
-                pass
-
-            print(label_fname)
-            print(image_fname)
-            print(aug_fname)
-
-
-
-
-    raise SystemExit
-
-    with open("imagenet_class_index.json", "r") as fi:
-        labels =  {
-            int(k): v[-1]
-            for k, v in json.load(fi).items()
-        }
-
-    img1 = torchvision.io.read_image("heart.png")
-    img1 = img1[None, :, :, :]
-
-    arr = load_image("heart.png")
-    show_image(arr[0])
-    model = IsMattModule()
-    probs = model(arr)
-    idx = torch.argmax(probs)
-
-    print("Image is:", labels[int(idx)])
-
-    raise SystemExit
-
-    img1 = torchvision.io.read_image("heart.png")
-    img1 = img1[None, :, :, :]
-
-    print(img1.shape)
-
-    img2 = load_image("heart.png")
-
-    print(img2.shape)
-
-    show_image(img1[0])
-
-    raise SystemExit
-
-    fnames = [
-        fname
-        for fname in glob("imgs-annotated/*.json")
-    ]
-
-    images = [
-        load_image(fname)
-        for fname in glob("imgs/*.jpg")
-    ]
-
-    print(images)
-
-
-    raise SystemExit
-
-    for fname in glob("imgs/*.jpg"):
-        print(fname)
-
-
-
-    raise SystemExit
-
-    arr = load_image("heart.png")
-
-
-    with open("imagenet_class_index.json", "r") as fi:
-        labels =  {
-            int(k): v[-1]
-            for k, v in json.load(fi).items()
-        }
-
-    model = IsMattModule()
-    probs = model(arr)
-    idx = torch.argmax(probs)
