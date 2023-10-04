@@ -76,17 +76,8 @@ class IsMattModule(torch.nn.Module):
         for p in self.vgg16.parameters():
             p.requires_grad = False
 
-        self.glob = torch.nn.AdaptiveMaxPool2d(1)
-
-        self.face = torch.nn.Sequential(
-            torch.nn.Flatten(),
-            torch.nn.Linear(512, 2048),
-            torch.nn.ReLU(),
-            torch.nn.Linear(2048, 1),
-            torch.nn.Sigmoid(),
-        )
-
         self.loc = torch.nn.Sequential(
+            torch.nn.MaxPool2d(7),
             torch.nn.Flatten(),
             torch.nn.Linear(512, 2048),
             torch.nn.ReLU(),
@@ -94,18 +85,19 @@ class IsMattModule(torch.nn.Module):
             torch.nn.Sigmoid(),
         )
 
+        self.face = torch.nn.Sequential(
+            torch.nn.MaxPool2d(7),
+            torch.nn.Flatten(),
+            torch.nn.Linear(512, 2048),
+            torch.nn.ReLU(),
+            torch.nn.Linear(2048, 1),
+            torch.nn.Sigmoid(),
+        )
+
     def forward(self, x):
         x = self.vgg16.features(x)
-        print(x.shape)
+        return self.face(x), self.loc(x)
 
-        loc = F.max_pool2d(x, kernel_size=7)
-        fac = F.max_pool2d(x, kernel_size=7)
-
-        print(self.glob(x).shape)
-        print(loc.shape)
-        print(fac.shape)
-
-        return self.face(loc), self.loc(fac)
 
 
 def show_image(img, bboxes=list()):
@@ -194,6 +186,21 @@ def predict(arr):
     return LABELS[int(idx)]
 
 
+def loca_loss(y_hat, y):
+    diff = torch.square(y_hat[:, :2] - y[:, :2])
+    summa = torch.sum(diff, dim=-1)
+
+    w_true = y[:, 2] - y[:, 0] 
+    h_true = y[:, 3] - y[:, 1] 
+
+    w_pred = y_hat[:, 2] - y_hat[:, 0] 
+    h_pred = y_hat[:, 3] - y_hat[:, 1] 
+
+    diff_wh = torch.sum(torch.square(w_true - w_pred), dim=-1)
+
+    return summa + diff_wh
+
+
 if __name__ == "__main__":
 
 
@@ -207,48 +214,40 @@ if __name__ == "__main__":
 
     optim = torch.optim.Adam(
         model.parameters(),
-        lr=0.001,
+        lr=0.0001,
     )
 
-    if args.checkpoint:
+    last_epoch = 0 
+
+    if args.checkpoint and os.path.exists(args.checkpoint):
         checkpoint = torch.load(args.checkpoint)
         model.load_state_dict(checkpoint["model_state_dict"])
         optim.load_state_dict(checkpoint["optim_state_dict"])
-        epoch = checkpoint["epoch"]
+        last_epoch = checkpoint["epoch"] + 1
         loss = checkpoint["loss"]
 
-
-
-
         print("+===========================+")
-        print("| epoch ..............", epoch)
+        print("| epoch ..............", last_epoch)
         print("| batch loss .........", loss)
         print("+===========================+")
         print()
         print()
         print()
 
+    elif not os.path.exists(args.checkpoint):
+        logging.warning(f"checkpoint file {args.checkpoint} does not exist")
+
     # Samples
 
     sample = dataset("train")
     sample = [next(sample) for _ in range(5)]
 
-    """
-    for img, bb in sample:
-        show_image(img, bb[1])
-        cv2.waitKey(0)
-        print("Predict =", predict(img))
-    else:
-        cv2.destroyAllWindows()
-    """
 
-
-    for epoch in range(args.epochs):
+    for epoch in range(last_epoch, last_epoch+args.epochs):
 
         print("+===========================+")
         print("| epoch ..............", epoch)
 
-        optim.zero_grad()
 
         i = 0
         last_loss = 0.0
@@ -256,25 +255,28 @@ if __name__ == "__main__":
         last_face_loss = 0.0
 
         for img, bbox in dataset("train"):
+
+            optim.zero_grad()
+
             y_hat_face, y_hat_loca = model(img)
 
-            loca_loss = torch.nn.functional.mse_loss(y_hat_loca, bbox[1])
-            face_loss = torch.nn.functional.binary_cross_entropy(y_hat_face, bbox[0].float())
-            loss = loca_loss + 0.5*face_loss
+            loss = loca_loss(y_hat_loca, bbox[1])
+
+            pos_loss = loca_loss(y_hat_loca, bbox[1])
+            fac_loss = torch.nn.functional.binary_cross_entropy(y_hat_face, bbox[0].float())
+            loss = pos_loss + 0.5*fac_loss
 
             loss.backward()
-
             optim.step()
 
-            last_loca_loss += loca_loss
-            last_face_loss += face_loss
+            # last_loca_loss += loca_loss
+            # last_face_loss += face_loss
             last_loss += loss
             i += 1
 
-
-        print("| batch loca loss ....", last_loca_loss)
-        print("| batch face loss ....", last_face_loss)
-        print("| batch loss .........", last_loss/i)
+        # print("| batch loca loss ....", last_loca_loss)
+        # print("| batch face loss ....", last_face_loss)
+        print("| batch loss .........", last_loss)
         print("+===========================+")
         print()
 
@@ -282,12 +284,26 @@ if __name__ == "__main__":
         samp = dataset("validate")
         samp = [next(samp) for _ in range(5)]
 
-        for img, bb in samp:
-            y_hat_face, y_hat_loca = model(img)
-            print(y_hat_face, bb[0])
-            print(y_hat_loca, bb[1])
+        # Display some results
 
+        with torch.no_grad():
+            for img, bb in samp:
+                y_hat_face, y_hat_loca = model(img)
+                print("face y hat =>", y_hat_face.cpu().numpy(), bb[0])
+                print("loca y hat =>", y_hat_loca.cpu().numpy(), bb[1])
 
+        # Save checkpoint
+
+        model_fname = f"model-{epoch:02d}.pt"
+
+        print(f"Checkpoint @ {model_fname}")
+
+        torch.save({
+            "epoch": epoch,
+            "model_state_dict": model.state_dict(),
+            "optim_state_dict": optim.state_dict(),
+            "loss": last_loss,
+        }, model_fname)
 
 
     if args.display:
