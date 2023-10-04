@@ -196,7 +196,7 @@ def loca_loss(y_hat, y):
     w_pred = y_hat[:, 2] - y_hat[:, 0] 
     h_pred = y_hat[:, 3] - y_hat[:, 1] 
 
-    diff_wh = torch.sum(torch.square(w_true - w_pred), dim=-1)
+    diff_wh = torch.sum(torch.square(w_true - w_pred) + torch.square(h_true - h_pred), dim=-1)
 
     return summa + diff_wh
 
@@ -223,16 +223,18 @@ if __name__ == "__main__":
         checkpoint = torch.load(args.checkpoint)
         model.load_state_dict(checkpoint["model_state_dict"])
         optim.load_state_dict(checkpoint["optim_state_dict"])
-        last_epoch = checkpoint["epoch"] + 1
+        last_epoch = checkpoint["epoch"]
         loss = checkpoint["loss"]
 
         print("+===========================+")
-        print("| epoch ..............", last_epoch)
+        print("| previous epoch .....", last_epoch)
         print("| batch loss .........", loss)
         print("+===========================+")
         print()
         print()
         print()
+
+        last_epoch += 1
 
     elif not os.path.exists(args.checkpoint):
         logging.warning(f"checkpoint file {args.checkpoint} does not exist")
