@@ -1,5 +1,7 @@
-*.swp
-*.png
+.DS_Store
 *.jpg
 *.json
-.DS_Store
+*.png
+*.pt
+*.swp
+*.zip
