@@ -19,7 +19,18 @@ def cleanup(signum, frame):
 
 
 def capture(device, model):
+
     cap = cv2.VideoCapture(device)
+
+
+    out = cv2.VideoWriter(
+        'output.avi',
+        cv2.VideoWriter_fourcc(*'XVID'),
+        20.0,
+        (640,480),
+    )
+
+    print(out)
 
     org = (00, 50)
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -102,9 +113,14 @@ def capture(device, model):
                 cv2.rectangle(frame, (x0, y0), (x1, y1), (0, 255, 0), 2)
 
         cv2.imshow('frame', frame)
+        out.write(frame)
+
 
         if cv2.waitKey(1) == ord('q'):
             break
+    out.release()
+    cap.release()
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
