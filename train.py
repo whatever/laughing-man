@@ -67,14 +67,14 @@ augmentor = alb.Compose(ts, bbox_params)
 class IsMattModule(torch.nn.Module):
     """..."""
 
-    def __init__(self):
+    def __init__(self, freeze_vgg=True):
 
         super(IsMattModule, self).__init__()
 
         self.vgg16 = torchvision.models.vgg16(weights=vgg.VGG16_Weights.DEFAULT).to("cuda")
 
         for p in self.vgg16.parameters():
-            p.requires_grad = False
+            p.requires_grad = freeze_vgg
 
         self.loc = torch.nn.Sequential(
             torch.nn.MaxPool2d(7),
@@ -97,6 +97,14 @@ class IsMattModule(torch.nn.Module):
     def forward(self, x):
         x = self.vgg16.features(x)
         return self.face(x), self.loc(x)
+
+    def predict(self, img):
+        with torch.no_grad():
+            img = transform(img)
+            img = torch.unsqueeze(img, 0)
+            img = img.cuda()
+            probs = self.forward(img)
+            return probs
 
 
 
@@ -210,11 +218,11 @@ if __name__ == "__main__":
     parser.add_argument("--display", action="store_true")
     args = parser.parse_args()
 
-    model = IsMattModule()
+    model = IsMattModule(freeze_vgg=False)
 
     optim = torch.optim.Adam(
         model.parameters(),
-        lr=0.0001,
+        lr=0.000001,
     )
 
     last_epoch = 0 
