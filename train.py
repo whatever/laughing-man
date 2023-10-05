@@ -151,8 +151,8 @@ def load_image(image_path, f=transform):
 def load_label(label_path):
     with open (label_path, "r") as fi:
         label = json.load(fi)
-    bbox = label["bbox"]
-    bbox = bbox if bbox else [[0.0]*4]
+    bbox = label["bbox"] if label["class"] == 1 else [[0.]*4]
+    bbox = bbox if bbox else [0.0]*4
     return (
         torch.tensor([[label["class"]]], dtype=torch.uint8),
         torch.tensor(bbox, dtype=torch.float32),
@@ -162,7 +162,7 @@ def load_label(label_path):
 def dataset(partition):
     """Yield (image, bounding box) from a partition of the dataset"""
 
-    files = list(glob(f"aug_data/{partition}/images/*.jpg"))
+    files = list(glob(f"augmented-data/{partition}/images/*.jpg"))
 
     random.shuffle(files)
 
@@ -227,7 +227,10 @@ if __name__ == "__main__":
 
     last_epoch = 0 
 
-    if args.checkpoint and os.path.exists(args.checkpoint):
+    if args.checkpoint is None:
+        pass
+
+    elif args.checkpoint and os.path.exists(args.checkpoint):
         checkpoint = torch.load(args.checkpoint)
         model.load_state_dict(checkpoint["model_state_dict"])
         optim.load_state_dict(checkpoint["optim_state_dict"])
