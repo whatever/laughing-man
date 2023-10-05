@@ -2,13 +2,13 @@
 
 
 import argparse
-import os.path
 import json
+import laughing_person as lp
 import numpy as np
+import os.path
 import random
 import shutil
 
-import laughing_person as lp
 
 
 from collections import defaultdict
@@ -88,24 +88,6 @@ if __name__ == "__main__":
             }
 
         labels.append(label)
-
-
-    """
-    # SPLIT INTO TRAIN, TEST, VALIDATE
-
-    n_train = int(0.7 * len(labels))
-    n_test = int(0.15 * len(labels))
-    n_validate = len(labels) - n_train - n_test
-
-    random.shuffle(labels)
-
-    split = {
-        "train": labels[:n_train],
-        "test": labels[n_train:(n_train + n_test)],
-        "validate": labels[n_train+n_test:],
-    }
-    """
-
 
     summary = defaultdict(int)
 
