@@ -117,7 +117,7 @@ if __name__ == "__main__":
 
         img = Image.open(item["image_fname"]).convert("RGB")
 
-        for i in range(32):
+        for i in range(33):
             res = lp.augmentor(
                 image=np.array(img),
                 bboxes=[item["bbox"]],
