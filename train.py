@@ -79,7 +79,6 @@ class IsMattModule(torch.nn.Module):
 def show_image(img, bboxes=list()):
     """Show a channels first image"""
 
-
     for i in range(img.shape[0]):
         arr = img[i].cpu().numpy()
         arr = np.moveaxis(arr, 0, 2)
@@ -154,12 +153,6 @@ with open("imagenet_class_index.json", "r") as fi:
         for k, v in json.load(fi).items()
     }
 
-
-def predict(arr):
-    probs = model(arr)
-    return probs
-    idx = torch.argmax(probs)
-    return LABELS[int(idx)]
 
 
 def loca_loss(y_hat, y):
