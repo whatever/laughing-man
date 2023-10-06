@@ -7,6 +7,7 @@ import laughing_person as lp
 import logging
 import json
 import matplotlib.pyplot as plot
+import os.path
 import numpy as np
 import random
 import signal
@@ -95,15 +96,21 @@ if __name__ == "__main__":
         for image_fname in examples:
             label_fname = get_label_fname(image_fname)
 
-            with open(label_fname, "r") as fi:
-                label = json.load(fi)
-                print(json.dumps(label, indent=4))
+            if os.path.exists(label_fname):
+                with open(label_fname, "r") as fi:
+                    label = json.load(fi)
+                    print(json.dumps(label, indent=4))
+            else:
+                label = {
+                    "class": 0,
+                    "bbox": [0, 0, 0, 0],
+                }
 
             img = Image.open(image_fname)
             o = lp.crop(img)
             o = np.array(o)
 
-            face, predicted_bb = model.predict(img)
+            face, predicted_bb, _ = model.predict(img)
             actual_bb = label["bbox"]
             actual_bb = actual_bb if len(actual_bb) == 4 else actual_bb[0]
 

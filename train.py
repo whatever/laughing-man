@@ -68,11 +68,17 @@ class IsMattModule(torch.nn.Module):
 
     def predict(self, img):
         with torch.no_grad():
-            img = lp.transform(img)
-            img = torch.unsqueeze(img, 0)
+            crop = lp.crop(img)
+            crop = lp.crop(crop)
+            crop = lp.crop(crop)
+            crop = lp.crop(crop)
+            crop = lp.crop(crop)
+
+            trans = lp.transform(crop)
+            img = torch.unsqueeze(trans, 0)
             img = img.cuda()
-            probs = self.forward(img)
-            return probs
+            face, bb = self.forward(img)
+        return face, bb, crop
 
 
 
