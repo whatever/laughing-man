@@ -21,6 +21,7 @@ from collections import defaultdict
 from torchvision import transforms
 import torchvision.models.vgg as vgg
 
+from datetime import datetime
 from PIL import Image
 
 torch.set_default_device('cuda')
@@ -31,37 +32,13 @@ import warnings
 warnings.filterwarnings('ignore', category=UserWarning, message='TypedStorage is deprecated')
 
 
-tensorify = transforms.ToTensor()
-
-
 transform = transforms.Compose([
     transforms.Resize(size=256),
     transforms.CenterCrop(size=224),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
 ])
-
-
-CROP_WIDTH = CROP_HEIGHT = 1000
-
-
-ts = [
-    alb.RandomCrop(width=CROP_WIDTH, height=CROP_HEIGHT),
-    alb.HorizontalFlip(p=0.5),
-    alb.VerticalFlip(p=0.5),
-    alb.RandomBrightnessContrast(p=0.2),
-    alb.RandomGamma(p=0.2),
-    alb.RGBShift(p=0.2),
-]
-
-
-bbox_params = alb.BboxParams(
-    format="albumentations",
-    label_fields=["class_labels"],
-)
-
-
-augmentor = alb.Compose(ts, bbox_params)
+"""Transform an image into a normalized 224x224 image"""
 
 
 class IsMattModule(torch.nn.Module):
@@ -76,21 +53,20 @@ class IsMattModule(torch.nn.Module):
         for p in self.vgg16.parameters():
             p.requires_grad = freeze_vgg
 
-        self.loc = torch.nn.Sequential(
-            torch.nn.MaxPool2d(7),
-            torch.nn.Flatten(),
-            torch.nn.Linear(512, 2048),
-            torch.nn.ReLU(),
-            torch.nn.Linear(2048, 4),
-            torch.nn.Sigmoid(),
-        )
-
         self.face = torch.nn.Sequential(
             torch.nn.MaxPool2d(7),
             torch.nn.Flatten(),
             torch.nn.Linear(512, 2048),
             torch.nn.ReLU(),
             torch.nn.Linear(2048, 1),
+            torch.nn.Sigmoid(),
+        )
+
+        self.loc = torch.nn.Sequential(
+            torch.nn.Flatten(),
+            torch.nn.Linear(7*7*512, 2048),
+            torch.nn.ReLU(),
+            torch.nn.Linear(2048, 4),
             torch.nn.Sigmoid(),
         )
 
@@ -258,6 +234,9 @@ if __name__ == "__main__":
 
     for epoch in range(last_epoch, last_epoch+args.epochs):
 
+
+        now = datetime.now()
+
         print("+===========================+")
         print("| epoch ..............", epoch)
 
@@ -290,6 +269,7 @@ if __name__ == "__main__":
         # print("| batch loca loss ....", last_loca_loss)
         # print("| batch face loss ....", last_face_loss)
         print("| batch loss .........", last_loss)
+        print("| time ............... ", (datetime.now() - now).seconds)
         print("+===========================+")
         print()
 

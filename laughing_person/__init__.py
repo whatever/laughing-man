@@ -1,4 +1,5 @@
 import albumentations as alb
+from torchvision import transforms
 
 
 def get_label_fname(image_fname):
@@ -26,3 +27,8 @@ bbox_params = alb.BboxParams(
 )
 
 augmentor = alb.Compose(ts, bbox_params)
+
+crop = transforms.Compose([
+    transforms.Resize(size=256),
+    transforms.CenterCrop(size=224),
+])
