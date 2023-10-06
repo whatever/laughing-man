@@ -3,6 +3,7 @@
 
 import argparse
 import cv2
+import laughing_person as lp
 import logging
 import json
 import numpy as np
@@ -13,7 +14,7 @@ import signal
 from datetime import timedelta
 from datetime import datetime
 from glob import glob
-from train import dataset, IsMattModule, transform, get_label_fname, load_label
+from train import dataset, IsMattModule, get_label_fname, load_label
 from PIL import Image
 
 face_cascade = cv2.CascadeClassifier('capture-images/haarcascade_frontalface_default.xml')

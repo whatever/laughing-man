@@ -4,6 +4,7 @@
 import albumentations as alb
 import argparse
 import cv2
+import laughing_person as lp
 import logging
 import matplotlib.pyplot as plot
 import numpy as np
@@ -30,15 +31,6 @@ from glob import glob
 
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, message='TypedStorage is deprecated')
-
-
-transform = transforms.Compose([
-    transforms.Resize(size=256),
-    transforms.CenterCrop(size=224),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-])
-"""Transform an image into a normalized 224x224 image"""
 
 
 class IsMattModule(torch.nn.Module):
@@ -76,7 +68,7 @@ class IsMattModule(torch.nn.Module):
 
     def predict(self, img):
         with torch.no_grad():
-            img = transform(img)
+            img = lp.transform(img)
             img = torch.unsqueeze(img, 0)
             img = img.cuda()
             probs = self.forward(img)
@@ -115,10 +107,10 @@ def get_label_fname(image_fname):
     )
 
 
-def load_image(image_path, f=transform):
+def load_image(image_path):
     with Image.open(image_path) as arr:
         arr = arr.convert("RGB")
-        arr = transform(arr)
+        arr = lp.transform(arr)
         arr = torch.unsqueeze(arr, 0)
         arr = arr.cuda()
         return arr
