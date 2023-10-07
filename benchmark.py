@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
                 draw_text(
                     o, 
-                    "actual",
+                    "ACTUAL",
                     (y[0], y[1]),
                     text_color=(255, 255, 255),
                     text_color_bg=(0, 255, 0),
@@ -160,7 +160,7 @@ if __name__ == "__main__":
             if face > 0.5:
                 draw_text(
                     o,
-                    "predicted",
+                    "PREDICTED",
                     (y_hat[0], y_hat[1]),
                     text_color=(255, 255, 255),
                     text_color_bg=(0, 255, 255),
@@ -179,13 +179,6 @@ if __name__ == "__main__":
         arr = cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)
         cv2.imshow("img", arr)
 
-        print(o.shape)
-
-
-        print(f"image .... {image_fname}")
-        print(f"y ........ {y}")
-        print(f"y_hat .... {y_hat}")
-        print()
         cv2.waitKey(0)
 
     cv2.destroyAllWindows()

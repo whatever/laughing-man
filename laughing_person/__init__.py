@@ -59,10 +59,6 @@ def cv2_imshow(results):
 
     for img, y, y_hat in results:
         y_hat_face, y_hat_loca = y_hat
-        print("... ŷ = ", y_hat_loca.cpu().numpy())
-        print("    y = ", y[1].cpu().numpy())
-        print()
-
 
         arr = img.cpu().numpy()
         arr = arr.squeeze(0)
@@ -83,8 +79,6 @@ def cv2_imshow(results):
         images.append(arr)
 
     arr = cv2.vconcat(images)
-
-    print(arr.shape)
 
     cv2.imshow("img", arr)
 
@@ -126,11 +120,6 @@ class IsMattModule(torch.nn.Module):
     def predict(self, img):
         with torch.no_grad():
             c = crop(img)
-            c = crop(c)
-            c = crop(c)
-            c = crop(c)
-            c = crop(c)
-
             trans = transform(c)
             img = torch.unsqueeze(trans, 0)
             img = img.cuda()

@@ -112,6 +112,36 @@ def loca_loss(y_hat, y):
     return summa + diff_wh
 
 
+
+def display_benchmark(model, samples):
+    with torch.no_grad():
+
+        images = []
+
+        for imgs, y in samples:
+
+            o, img = imgs
+            o = lp.crop(o)
+
+            y_hat = model(img)
+
+            # print(f"y ........ {y}")
+            # print(f"y_hat .... {y_hat}")
+            # print()
+
+            images.append((
+                torch.tensor(np.array(o)[None, :, :, :]),
+                [y[0], y[1]],
+                [y_hat[0], y_hat[1]],
+            ))
+
+        for i in range(2):
+            lp.cv2_imshow(images)
+            cv2.waitKey(333)
+
+
+
+
 if __name__ == "__main__":
 
 
@@ -153,6 +183,11 @@ if __name__ == "__main__":
     elif not os.path.exists(args.checkpoint):
         logging.warning(f"checkpoint file {args.checkpoint} does not exist")
 
+    if args.display:
+        samp = dataset("validate")
+        samp = [next(samp) for _ in range(5)]
+        display_benchmark(model, samp)
+
 
     for epoch in range(last_epoch, last_epoch+args.epochs):
 
@@ -168,7 +203,7 @@ if __name__ == "__main__":
         last_loca_loss = 0.0
         last_face_loss = 0.0
 
-        for imgs, bbox in dataset("train", n=3):
+        for imgs, bbox in dataset("train", n=10):
 
             _, img = imgs
 
@@ -197,45 +232,14 @@ if __name__ == "__main__":
         print()
 
 
-        samp = dataset("validate")
-        samp = [next(samp) for _ in range(5)]
-
         # Display some results
 
         if args.display:
-            with torch.no_grad():
-                images = []
-                for imgs, y in samp:
+            samp = dataset("validate")
+            samp = [next(samp) for _ in range(5)]
+            display_benchmark(model, samp)
 
-                    o, img = imgs
-                    o = lp.crop(o)
-
-                    y_hat = model(img)
-
-                    print(y, y_hat)
-
-                    images.append((
-                        torch.tensor(np.array(o)[None, :, :, :]),
-                        [1, y[1]],
-                        [1, y_hat[1]],
-                    ))
-
-                for i in range(1):
-                    lp.cv2_imshow(images)
-                    cv2.waitKey(1000)
-
-        # Save checkpoint
-
-        model_fname = f"model-{epoch:02d}.pt"
-
-        print(f"Checkpoint @ {model_fname}")
-
-        torch.save({
-            "epoch": epoch,
-            "model_state_dict": model.state_dict(),
-            "optim_state_dict": optim.state_dict(),
-            "loss": last_loss,
-        }, model_fname)
+    logger.info("Saving model %s", args.checkpoint)
 
     torch.save({
         "epoch": epoch,
