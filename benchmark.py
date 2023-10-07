@@ -17,7 +17,7 @@ import torch
 from datetime import timedelta
 from datetime import datetime
 from glob import glob
-from train import dataset, IsMattModule, get_label_fname, load_label, show_image
+from train import dataset, get_label_fname, load_label
 from PIL import Image
 
 face_cascade = cv2.CascadeClassifier('capture-images/haarcascade_frontalface_default.xml')
@@ -71,13 +71,18 @@ def calc_iou(bb1, bb2):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--checkpoints", nargs="+", type=str)
     parser.add_argument("--validate-dir", type=str, required=True)
-    parser.add_argument("--checkpoints-dir", type=str, required=True)
     args = parser.parse_args()
 
-    model = IsMattModule()
 
-    for model_fname in sorted(glob(f"{args.checkpoints_dir}/*.pt")):
+    model = lp.IsMattModule()
+
+    for model_fname in args.checkpoints:
+
+
+        raise Exception("Seems like the image being sent to predict(...) is incorrect...")
+
         # logger.info("Loading model %s", model_fname)
         checkpoint = torch.load(model_fname)
         model.load_state_dict(checkpoint['model_state_dict'])

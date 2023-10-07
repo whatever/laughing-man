@@ -1,9 +1,11 @@
 import albumentations as alb
 import cv2
 import numpy as np
+import torch
+import torchvision
+import torchvision.models.vgg as vgg
 
 from torchvision import transforms
-from .model import IsMattModule
 
 
 def get_label_fname(image_fname):
@@ -81,3 +83,52 @@ def cv2_imshow(results):
     print(arr.shape)
 
     cv2.imshow("img", arr)
+
+
+
+class IsMattModule(torch.nn.Module):
+
+    def __init__(self, freeze_vgg=True):
+
+        super(IsMattModule, self).__init__()
+
+        self.vgg16 = torchvision.models.vgg16(weights=vgg.VGG16_Weights.DEFAULT).to("cuda")
+
+        for p in self.vgg16.parameters():
+            p.requires_grad = freeze_vgg
+
+        self.face = torch.nn.Sequential(
+            torch.nn.MaxPool2d(7),
+            torch.nn.Flatten(),
+            torch.nn.Linear(512, 2048),
+            torch.nn.ReLU(),
+            torch.nn.Linear(2048, 1),
+            torch.nn.Sigmoid(),
+        )
+
+        self.loc = torch.nn.Sequential(
+            torch.nn.MaxPool2d(kernel_size=2, stride=2),
+            torch.nn.Flatten(),
+            torch.nn.Linear(3*3*512, 2048),
+            torch.nn.ReLU(),
+            torch.nn.Linear(2048, 4),
+            torch.nn.Sigmoid(),
+        )
+
+    def forward(self, x):
+        x = self.vgg16.features(x)
+        return self.face(x), self.loc(x)
+
+    def predict(self, img):
+        with torch.no_grad():
+            c = crop(img)
+            c = crop(c)
+            c = crop(c)
+            c = crop(c)
+            c = crop(c)
+
+            trans = transform(c)
+            img = torch.unsqueeze(trans, 0)
+            img = img.cuda()
+            face, bb = self.forward(img)
+        return face, bb, crop

@@ -115,7 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("--display", action="store_true")
     args = parser.parse_args()
 
-    model = lp.model.IsMattModule(freeze_vgg=False)
+    model = lp.IsMattModule(freeze_vgg=False)
 
     optim = torch.optim.Adam(
         model.parameters(),
@@ -147,11 +147,6 @@ if __name__ == "__main__":
     elif not os.path.exists(args.checkpoint):
         logging.warning(f"checkpoint file {args.checkpoint} does not exist")
 
-    # Samples
-
-    sample = dataset("train")
-    sample = [next(sample) for _ in range(5)]
-
 
     for epoch in range(last_epoch, last_epoch+args.epochs):
 
@@ -167,7 +162,7 @@ if __name__ == "__main__":
         last_loca_loss = 0.0
         last_face_loss = 0.0
 
-        for imgs, bbox in dataset("train"):
+        for imgs, bbox in dataset("train", n=3):
 
             _, img = imgs
 
@@ -219,9 +214,9 @@ if __name__ == "__main__":
                         [1, y_hat[1]],
                     ))
 
-                for i in range(10):
+                for i in range(1):
                     lp.cv2_imshow(images)
-                    cv2.waitKey(1)
+                    cv2.waitKey(1000)
 
         # Save checkpoint
 
