@@ -60,8 +60,24 @@ def cv2_imshow(results):
 
         arr = img.cpu().numpy()
         arr = arr.squeeze(0)
-        arr = np.moveaxis(arr, 0, 2)
+        # arr = np.moveaxis(arr, 0, 2)
+        arr = cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)
+
+        w = h = 224
+
+        bb = y_hat_loca[0].cpu().numpy()
+        bb2 = y[1][0].cpu().numpy()
+        wh = np.array([w, h, w, h])
+        p = [int(x) for x in bb*wh]
+        q = [int(x) for x in bb2*wh]
+
+        cv2.rectangle(arr, p[0:2], p[2:4], (255, 255, 0), 3)
+        cv2.rectangle(arr, q[0:2], q[2:4], (0, 0, 255), 3)
 
         images.append(arr)
-    arr = np.concatenate(images, axis=1)
+
+    arr = cv2.vconcat(images)
+
+    print(arr.shape)
+
     cv2.imshow("img", arr)

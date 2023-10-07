@@ -39,12 +39,13 @@ def get_label_fname(image_fname):
 
 
 def load_image(image_path):
-    with Image.open(image_path) as arr:
+    with Image.open(image_path) as img:
+        arr = img.copy()
         arr = arr.convert("RGB")
         arr = lp.transform(arr)
         arr = torch.unsqueeze(arr, 0)
         arr = arr.cuda()
-        return arr
+        return img, arr
 
 
 def load_label(label_path):
@@ -166,7 +167,9 @@ if __name__ == "__main__":
         last_loca_loss = 0.0
         last_face_loss = 0.0
 
-        for img, bbox in dataset("train", n=10):
+        for imgs, bbox in dataset("train"):
+
+            _, img = imgs
 
             optim.zero_grad()
 
@@ -201,16 +204,24 @@ if __name__ == "__main__":
         if args.display:
             with torch.no_grad():
                 images = []
-                for img, y in samp:
+                for imgs, y in samp:
+
+                    o, img = imgs
+                    o = lp.crop(o)
 
                     y_hat = model(img)
 
-                    images.append((img, y, y_hat))
+                    print(y, y_hat)
 
-                lp.cv2_imshow(images)
+                    images.append((
+                        torch.tensor(np.array(o)[None, :, :, :]),
+                        [1, y[1]],
+                        [1, y_hat[1]],
+                    ))
 
-        cv2.waitKey(10000)
-        raise SystemExit
+                for i in range(10):
+                    lp.cv2_imshow(images)
+                    cv2.waitKey(1)
 
         # Save checkpoint
 
