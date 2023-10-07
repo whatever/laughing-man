@@ -163,10 +163,10 @@ if __name__ == "__main__":
                     "PREDICTED",
                     (y_hat[0], y_hat[1]),
                     text_color=(255, 255, 255),
-                    text_color_bg=(0, 255, 255),
+                    text_color_bg=(255, 0, 0),
                 )
 
-                cv2.rectangle(o, (y_hat[0], y_hat[1]), (y_hat[2], y_hat[3]), (0, 255, 255), 2)
+                cv2.rectangle(o, (y_hat[0], y_hat[1]), (y_hat[2], y_hat[3]), (255, 0, 0), 2)
 
             images.append(o.copy())
 

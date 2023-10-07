@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
     optim = torch.optim.Adam(
         model.parameters(),
-        lr=0.000001,
+        lr=0.00001,
     )
 
     last_epoch = 0 
@@ -211,9 +211,8 @@ if __name__ == "__main__":
 
             y_hat_face, y_hat_loca = model(img)
 
-            loss = loca_loss(y_hat_loca, bbox[1])
-
-            pos_loss = loca_loss(y_hat_loca, bbox[1])
+            # pos_loss = loca_loss(y_hat_loca, bbox[1])
+            pos_loss = torchvision.ops.distance_box_iou_loss(y_hat_loca, bbox[1])
             fac_loss = torch.nn.functional.binary_cross_entropy(y_hat_face, bbox[0].float())
             loss = 0.75*pos_loss + 0.25*fac_loss
 
@@ -237,7 +236,7 @@ if __name__ == "__main__":
             samp = [next(samp) for _ in range(5)]
             display_benchmark(model, samp)
 
-    logger.info("Saving model %s", args.checkpoint)
+    logging.info("Saving model %s", args.checkpoint)
 
     torch.save({
         "epoch": epoch,
