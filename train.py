@@ -42,6 +42,7 @@ def load_image(image_path):
     with Image.open(image_path) as img:
         arr = img.copy()
         arr = arr.convert("RGB")
+        arr = lp.crop(arr)
         arr = lp.transform(arr)
         arr = torch.unsqueeze(arr, 0)
         arr = arr.cuda()
@@ -49,6 +50,11 @@ def load_image(image_path):
 
 
 def load_label(label_path):
+    if not os.path.exists(label_path):
+        return (
+            torch.tensor([[0]], dtype=torch.uint8),
+            torch.tensor([[0.]*4], dtype=torch.float32),
+        )
     with open (label_path, "r") as fi:
         label = json.load(fi)
     bbox = label["bbox"] if label["class"] == 1 else [[0.]*4]

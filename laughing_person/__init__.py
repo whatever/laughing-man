@@ -34,18 +34,22 @@ bbox_params = alb.BboxParams(
 
 augmentor = alb.Compose(ts, bbox_params)
 
-crop = transforms.Compose([
+crop_arr = [
     transforms.Resize(size=256),
     transforms.CenterCrop(size=224),
-])
+]
 
-
-transform = transforms.Compose([
-    transforms.Resize(size=256),
-    transforms.CenterCrop(size=224),
+tensorify_arr = [
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-])
+]
+
+
+crop = transforms.Compose(crop_arr)
+"""Resize smallest size to 256, then crop out the center to 224x224"""
+
+
+transform = transforms.Compose(tensorify_arr)
 """Transform an image into a normalized 224x224 image"""
 
 

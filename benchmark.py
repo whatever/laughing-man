@@ -14,11 +14,12 @@ import signal
 import torch
 
 
-from datetime import timedelta
 from datetime import datetime
+from datetime import timedelta
 from glob import glob
-from train import dataset, get_label_fname, load_label
 from PIL import Image
+from train import dataset, get_label_fname, load_label
+from train import load_image
 
 face_cascade = cv2.CascadeClassifier('capture-images/haarcascade_frontalface_default.xml')
 
@@ -68,6 +69,25 @@ def calc_iou(bb1, bb2):
     assert iou <= 1.0
     return iou
 
+
+
+def draw_text(img, text,
+              pos=(0, 0),
+              font=cv2.FONT_HERSHEY_PLAIN,
+              font_scale=3,
+              font_thickness=2,
+              text_color=(0, 255, 0),
+              text_color_bg=(0, 0, 0)
+              ):
+
+    x, y = pos
+    text_size, _ = cv2.getTextSize(text, font, font_scale, font_thickness)
+    text_w, text_h = text_size
+    cv2.rectangle(img, pos, (x + text_w, y + text_h), text_color_bg, -1)
+    cv2.putText(img, text, (x, y + text_h + font_scale - 1), font, font_scale, text_color, font_thickness)
+
+    return text_size
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -79,9 +99,6 @@ if __name__ == "__main__":
     model = lp.IsMattModule()
 
     for model_fname in args.checkpoints:
-
-
-        raise Exception("Seems like the image being sent to predict(...) is incorrect...")
 
         # logger.info("Loading model %s", model_fname)
         checkpoint = torch.load(model_fname)
@@ -101,44 +118,55 @@ if __name__ == "__main__":
         for image_fname in examples:
             label_fname = get_label_fname(image_fname)
 
-            if os.path.exists(label_fname):
-                with open(label_fname, "r") as fi:
-                    label = json.load(fi)
-                    print(json.dumps(label, indent=4))
-            else:
-                label = {
-                    "class": 0,
-                    "bbox": [0, 0, 0, 0],
-                }
+            # y
+            is_face_actual, actual_bb = load_label(label_fname)
+            is_face_actual = is_face_actual[0].cpu().numpy()
+            actual_bb = actual_bb[0].cpu().numpy()
 
-            img = Image.open(image_fname)
-            o = lp.crop(img)
-            o = np.array(o)
-
-            face, predicted_bb, _ = model.predict(img)
-            actual_bb = label["bbox"]
-            actual_bb = actual_bb if len(actual_bb) == 4 else actual_bb[0]
-
-            is_face_actual = label["class"]
+            # ŷ
+            with torch.no_grad():
+                img, arr = load_image(image_fname)
+                face, predicted_bb = model(arr)
+                predicted_bb = predicted_bb[0].cpu().numpy()
 
             w, h = img.size
-            w, h, _ = o.shape
 
             y = [
                 int(v)
-                for v in (np.array(actual_bb)*np.array([w, h, w, h])).tolist()
+                for v in (actual_bb*np.array([w, h, w, h])).tolist()
             ]
 
             y_hat = [
                 int(v)
-                for v in (predicted_bb[0].cpu().numpy()*np.array([w, h, w, h])).tolist()
+                for v in (predicted_bb*np.array([w, h, w, h])).tolist()
             ]
 
 
-            o = lp.crop(img)
-            o = np.array(o)
-            cv2.rectangle(o, (y[0], y[1]), (y[2], y[3]), (0, 255, 0), 2)
-            cv2.rectangle(o, (y_hat[0], y_hat[1]), (y_hat[2], y_hat[3]), (0, 255, 255), 2)
+            o = np.array(img)
+
+
+            if is_face_actual > 0.5:
+
+                draw_text(
+                    o, 
+                    "actual",
+                    (y[0], y[1]),
+                    text_color=(255, 255, 255),
+                    text_color_bg=(0, 255, 0),
+                )
+
+                cv2.rectangle(o, (y[0], y[1]), (y[2], y[3]), (0, 255, 0), 2)
+
+            if face > 0.5:
+                draw_text(
+                    o,
+                    "predicted",
+                    (y_hat[0], y_hat[1]),
+                    text_color=(255, 255, 255),
+                    text_color_bg=(0, 255, 255),
+                )
+
+                cv2.rectangle(o, (y_hat[0], y_hat[1]), (y_hat[2], y_hat[3]), (0, 255, 255), 2)
 
             images.append(o.copy())
 
