@@ -107,7 +107,7 @@ def loca_loss(y_hat, y):
     w_pred = y_hat[:, 2] - y_hat[:, 0] 
     h_pred = y_hat[:, 3] - y_hat[:, 1] 
 
-    diff_wh = torch.sum(torch.square(w_true - w_pred) + torch.square(h_true - h_pred), dim=-1)
+    diff_wh = torch.sum(torch.square(w_true - w_pred), dim=-1) + torch.sum(torch.square(h_true - h_pred), dim=-1)
 
     return summa + diff_wh
 
@@ -203,7 +203,7 @@ if __name__ == "__main__":
         last_loca_loss = 0.0
         last_face_loss = 0.0
 
-        for imgs, bbox in dataset("train", n=10):
+        for imgs, bbox in dataset("train"):
 
             _, img = imgs
 
