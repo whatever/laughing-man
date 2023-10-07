@@ -15,12 +15,9 @@ import random
 import torch
 import torchvision
 
-import torch.nn.functional as F
-
 from collections import defaultdict
 
 from torchvision import transforms
-import torchvision.models.vgg as vgg
 
 from datetime import datetime
 from PIL import Image
@@ -31,77 +28,6 @@ from glob import glob
 
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, message='TypedStorage is deprecated')
-
-
-class IsMattModule(torch.nn.Module):
-    """..."""
-
-    def __init__(self, freeze_vgg=True):
-
-        super(IsMattModule, self).__init__()
-
-        self.vgg16 = torchvision.models.vgg16(weights=vgg.VGG16_Weights.DEFAULT).to("cuda")
-
-        for p in self.vgg16.parameters():
-            p.requires_grad = freeze_vgg
-
-        self.face = torch.nn.Sequential(
-            torch.nn.MaxPool2d(7),
-            torch.nn.Flatten(),
-            torch.nn.Linear(512, 2048),
-            torch.nn.ReLU(),
-            torch.nn.Linear(2048, 1),
-            torch.nn.Sigmoid(),
-        )
-
-        self.loc = torch.nn.Sequential(
-            torch.nn.Flatten(),
-            torch.nn.Linear(7*7*512, 2048),
-            torch.nn.ReLU(),
-            torch.nn.Linear(2048, 4),
-            torch.nn.Sigmoid(),
-        )
-
-    def forward(self, x):
-        x = self.vgg16.features(x)
-        return self.face(x), self.loc(x)
-
-    def predict(self, img):
-        with torch.no_grad():
-            crop = lp.crop(img)
-            crop = lp.crop(crop)
-            crop = lp.crop(crop)
-            crop = lp.crop(crop)
-            crop = lp.crop(crop)
-
-            trans = lp.transform(crop)
-            img = torch.unsqueeze(trans, 0)
-            img = img.cuda()
-            face, bb = self.forward(img)
-        return face, bb, crop
-
-
-
-def show_image(img, bboxes=list()):
-    """Show a channels first image"""
-
-    for i in range(img.shape[0]):
-        arr = img[i].cpu().numpy()
-        arr = np.moveaxis(arr, 0, 2)
-        frame = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
-
-        w, h, _ = frame.shape
-
-        for bb in bboxes:
-            cv2.rectangle(
-                frame,
-                (int(bb[0]*w), int(bb[1]*h)),
-                (int(bb[2]*w), int(bb[3]*h)),
-                (0, 255, 255),
-                2,
-            )
-
-        cv2.imshow("image", frame)
 
 
 def get_label_fname(image_fname):
@@ -132,10 +58,13 @@ def load_label(label_path):
     )
 
 
-def dataset(partition):
+def dataset(partition, n=None):
     """Yield (image, bounding box) from a partition of the dataset"""
 
     files = list(glob(f"augmented-data/{partition}/images/*.jpg"))
+
+    if n is not None:
+        files = files[:n]
 
     random.shuffle(files)
 
@@ -185,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--display", action="store_true")
     args = parser.parse_args()
 
-    model = IsMattModule(freeze_vgg=False)
+    model = lp.model.IsMattModule(freeze_vgg=False)
 
     optim = torch.optim.Adam(
         model.parameters(),
@@ -237,7 +166,7 @@ if __name__ == "__main__":
         last_loca_loss = 0.0
         last_face_loss = 0.0
 
-        for img, bbox in dataset("train"):
+        for img, bbox in dataset("train", n=10):
 
             optim.zero_grad()
 
@@ -257,9 +186,8 @@ if __name__ == "__main__":
             last_loss += loss
             i += 1
 
-        # print("| batch loca loss ....", last_loca_loss)
         # print("| batch face loss ....", last_face_loss)
-        print("| batch loss .........", last_loss)
+        print("| batch loss .........", float(last_loss))
         print("| time ............... ", (datetime.now() - now).seconds)
         print("+===========================+")
         print()
@@ -270,11 +198,19 @@ if __name__ == "__main__":
 
         # Display some results
 
-        with torch.no_grad():
-            for img, bb in samp:
-                y_hat_face, y_hat_loca = model(img)
-                print("face y hat =>", y_hat_face.cpu().numpy(), bb[0])
-                print("loca y hat =>", y_hat_loca.cpu().numpy(), bb[1])
+        if args.display:
+            with torch.no_grad():
+                images = []
+                for img, y in samp:
+
+                    y_hat = model(img)
+
+                    images.append((img, y, y_hat))
+
+                lp.cv2_imshow(images)
+
+        cv2.waitKey(10000)
+        raise SystemExit
 
         # Save checkpoint
 
@@ -288,17 +224,6 @@ if __name__ == "__main__":
             "optim_state_dict": optim.state_dict(),
             "loss": last_loss,
         }, model_fname)
-
-
-    if args.display:
-        samp = dataset("validate")
-        samp = [next(samp) for _ in range(5)]
-        for img, bb in samp:
-            y_hat_face, y_hat_loca = model(img)
-            print(y_hat_face)
-            print(y_hat_loca)
-            show_image(img, bb[1])
-            cv2.waitKey(0)
 
     torch.save({
         "epoch": epoch,
