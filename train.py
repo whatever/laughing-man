@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
         now = datetime.now()
 
-        print("+===========================+")
+        print("+===================================+")
         print("| epoch ..............", epoch)
 
 
@@ -215,20 +215,18 @@ if __name__ == "__main__":
 
             pos_loss = loca_loss(y_hat_loca, bbox[1])
             fac_loss = torch.nn.functional.binary_cross_entropy(y_hat_face, bbox[0].float())
-            loss = pos_loss + 0.5*fac_loss
+            loss = 0.75*pos_loss + 0.25*fac_loss
 
             loss.backward()
             optim.step()
 
-            # last_loca_loss += loca_loss
-            # last_face_loss += face_loss
             last_loss += loss
             i += 1
 
         # print("| batch face loss ....", last_face_loss)
-        print("| batch loss .........", float(last_loss))
-        print("| time ............... ", (datetime.now() - now).seconds)
-        print("+===========================+")
+        print(f"| batch loss ......... {float(last_loss):.2f}")
+        print(f"| time ............... {(datetime.now() - now).seconds}")
+        print("+===================================+")
         print()
 
 
