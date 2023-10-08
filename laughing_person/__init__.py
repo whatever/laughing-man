@@ -6,6 +6,7 @@ import torchvision
 import torchvision.models.vgg as vgg
 
 from torchvision import transforms
+import PIL
 
 
 def get_label_fname(image_fname):
@@ -86,6 +87,13 @@ def cv2_imshow(results):
 
 class IsMattModule(torch.nn.Module):
 
+    shrink = transforms.Compose([
+        transforms.Resize(size=224),
+        transforms.CenterCrop(size=224),
+    ])
+
+    trans =  transforms.Compose(tensorify_arr)
+
     def __init__(self, freeze_vgg=True):
 
         super(IsMattModule, self).__init__()
@@ -116,6 +124,18 @@ class IsMattModule(torch.nn.Module):
     def forward(self, x):
         x = self.vgg16.features(x)
         return self.face(x), self.loc(x)
+
+    def infer(self, img):
+        """Return (face, bb, x) for a PIL image"""
+        assert isinstance(img, PIL.Image.Image)
+
+        augmented_img = self.shrink(img.copy().convert("RGB"))
+        raise NotImplementedError("TODO: Return augmented image + inference")
+        x = self.trans(x)
+        bb = [0., 0., 0., 0.]
+        face = 0.
+
+        return face, bb, x
 
     def predict(self, img):
         with torch.no_grad():
