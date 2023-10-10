@@ -35,6 +35,11 @@ bbox_params = alb.BboxParams(
 
 augmentor = alb.Compose(ts, bbox_params)
 
+large_crop = transforms.Compose([
+    transforms.Resize(size=256*3),
+    transforms.CenterCrop(size=224*3),
+])
+
 crop_arr = [
     transforms.Resize(size=256),
     transforms.CenterCrop(size=224),
@@ -86,13 +91,6 @@ def cv2_imshow(results):
 
 
 class IsMattModule(torch.nn.Module):
-
-    shrink = transforms.Compose([
-        transforms.Resize(size=224),
-        transforms.CenterCrop(size=224),
-    ])
-
-    trans =  transforms.Compose(tensorify_arr)
 
     def __init__(self, freeze_vgg=True):
 
@@ -154,6 +152,8 @@ class LaughingPerson(object):
         # CV2 BGR -> PIL RGB
         x_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         x_img = PIL.Image.fromarray(x_img)
+
+        x_large_img = large_crop(x_img)
         x_img = crop(x_img)
 
         # PIL RGB -> Tensor
@@ -163,16 +163,16 @@ class LaughingPerson(object):
             face, bbox = self.model(x)
             face = float(face[0][0])
 
-            w, h = x_img.size
+            w, h = x_large_img.size
             bbox = bbox.cpu() * np.array([w, h, w, h])
             bbox = [int(v) for v in bbox[0]]
 
 
         # Tensor -> CV2 BGR
-        y_img = np.array(x_img)
+        y_img = np.array(x_large_img)
         y_img = cv2.cvtColor(y_img, cv2.COLOR_RGB2BGR)
 
-        if face > 0.85:
+        if face > 0.65:
             cv2.rectangle(
                 y_img,
                 bbox[:2],
@@ -183,13 +183,16 @@ class LaughingPerson(object):
 
         put_text_args = [
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.35,
+            0.65,
             (255, 255, 255),
             1,
         ]
+
+        cv2.flip(y_img, 1)
+
         cv2.putText(
             y_img,
-            f"face ... {face:.2f}\nAnd?",
+            f"face ... {face:.2f}",
             (0, 20),
             *put_text_args,
         )
