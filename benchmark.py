@@ -179,6 +179,7 @@ if __name__ == "__main__":
         arr = cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)
         cv2.imshow("img", arr)
 
-        cv2.waitKey(0)
+        while cv2.waitKey(0) != ord('q'):
+            pass
 
     cv2.destroyAllWindows()

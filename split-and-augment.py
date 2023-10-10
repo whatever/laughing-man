@@ -21,6 +21,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--num-augmentations", type=int, default=10)
+    parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
     # To make the the run immutable
@@ -31,11 +32,15 @@ if __name__ == "__main__":
         for fname in glob("images/img-*-*.jpg")
     ]
 
+    positive_image_fnames += [
+        fname
+        for fname in glob("images/dxD-*.jpg")
+    ]
+
     negative_image_fnames = random.sample([
         fname
         for fname in glob("images/image_*.jpg")
     ], len(positive_image_fnames))
-
 
     image_fnames = sorted(positive_image_fnames + negative_image_fnames)
 

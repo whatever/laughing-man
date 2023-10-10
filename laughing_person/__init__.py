@@ -35,6 +35,11 @@ bbox_params = alb.BboxParams(
 
 augmentor = alb.Compose(ts, bbox_params)
 
+large_crop = transforms.Compose([
+    transforms.Resize(size=256*3),
+    transforms.CenterCrop(size=224*3),
+])
+
 crop_arr = [
     transforms.Resize(size=256),
     transforms.CenterCrop(size=224),
@@ -87,13 +92,6 @@ def cv2_imshow(results):
 
 class IsMattModule(torch.nn.Module):
 
-    shrink = transforms.Compose([
-        transforms.Resize(size=224),
-        transforms.CenterCrop(size=224),
-    ])
-
-    trans =  transforms.Compose(tensorify_arr)
-
     def __init__(self, freeze_vgg=True):
 
         super(IsMattModule, self).__init__()
@@ -113,11 +111,14 @@ class IsMattModule(torch.nn.Module):
         )
 
         self.loc = torch.nn.Sequential(
-            torch.nn.MaxPool2d(kernel_size=2, stride=2),
             torch.nn.Flatten(),
-            torch.nn.Linear(3*3*512, 2048),
+            torch.nn.Linear(7*7*512, 128),
             torch.nn.ReLU(),
-            torch.nn.Linear(2048, 4),
+            torch.nn.Linear(128, 64),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, 32),
+            torch.nn.ReLU(),
+            torch.nn.Linear(32, 4),
             torch.nn.Sigmoid(),
         )
 
@@ -125,23 +126,79 @@ class IsMattModule(torch.nn.Module):
         x = self.vgg16.features(x)
         return self.face(x), self.loc(x)
 
-    def infer(self, img):
-        """Return (face, bb, x) for a PIL image"""
-        assert isinstance(img, PIL.Image.Image)
 
-        augmented_img = self.shrink(img.copy().convert("RGB"))
-        raise NotImplementedError("TODO: Return augmented image + inference")
-        x = self.trans(x)
-        bb = [0., 0., 0., 0.]
-        face = 0.
+class LaughingPerson(object):
+    """Run a loop that captures frames from a camera and blocks faces"""
 
-        return face, bb, x
+    def __init__(self, cap, model_path):
+        """Initialize"""
+        self.model = IsMattModule()
+        state = torch.load(model_path)
+        self.model.load_state_dict(state["model_state_dict"])
+        self.model.eval()
+        self.cap = cap
+        self.living = True
+        self.last_raw_frame = None
 
-    def predict(self, img):
+    def read(self, *args, **kwargs):
+        """Read a frame from device, apply filtering, and return"""
+        ret, frame = self.cap.read(*args, **kwargs)
+
+        self.last_read = (ret, frame)
+
+        if not ret:
+            return ret, frame, None
+
+        # CV2 BGR -> PIL RGB
+        x_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        x_img = PIL.Image.fromarray(x_img)
+
+        x_large_img = large_crop(x_img)
+        x_img = crop(x_img)
+
+        # PIL RGB -> Tensor
         with torch.no_grad():
-            c = crop(img)
-            trans = transform(c)
-            img = torch.unsqueeze(trans, 0)
-            img = img.cuda()
-            face, bb = self.forward(img)
-        return face, bb, crop
+            x = transform(x_img)
+            x = torch.unsqueeze(x, 0).cuda()
+            face, bbox = self.model(x)
+            face = float(face[0][0])
+
+            w, h = x_large_img.size
+            bbox = bbox.cpu() * np.array([w, h, w, h])
+            bbox = [int(v) for v in bbox[0]]
+
+
+        # Tensor -> CV2 BGR
+        y_img = np.array(x_large_img)
+        y_img = cv2.cvtColor(y_img, cv2.COLOR_RGB2BGR)
+
+        if face > 0.65:
+            cv2.rectangle(
+                y_img,
+                bbox[:2],
+                bbox[2:],
+                (0, 255, 255),
+                2,
+            )
+
+        put_text_args = [
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.65,
+            (255, 255, 255),
+            1,
+        ]
+
+        cv2.flip(y_img, 1)
+
+        cv2.putText(
+            y_img,
+            f"face ... {face:.2f}",
+            (0, 20),
+            *put_text_args,
+        )
+
+        return ret, y_img
+
+    def alive(self):
+        """Return device is working"""
+        return self.cap.isOpened() and self.living
