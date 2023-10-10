@@ -145,3 +145,20 @@ class IsMattModule(torch.nn.Module):
             img = img.cuda()
             face, bb = self.forward(img)
         return face, bb, crop
+
+
+class LaughingPerson(object):
+    """Run a loop that captures frames from a camera and blocks faces"""
+
+    def __init__(self, cap):
+        self.cap = cap
+        self.living = True
+
+    def read(self, *args, **kwargs):
+        """Read a frame from device, apply filtering, and return"""
+        ret, frame = self.cap.read(*args, **kwargs)
+        return ret, frame
+
+    def alive(self):
+        """Return device is working"""
+        return self.cap.isOpened() and self.living
