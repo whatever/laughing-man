@@ -113,11 +113,14 @@ class IsMattModule(torch.nn.Module):
         )
 
         self.loc = torch.nn.Sequential(
-            torch.nn.MaxPool2d(kernel_size=2, stride=2),
             torch.nn.Flatten(),
-            torch.nn.Linear(3*3*512, 2048),
+            torch.nn.Linear(7*7*512, 128),
             torch.nn.ReLU(),
-            torch.nn.Linear(2048, 4),
+            torch.nn.Linear(128, 64),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, 32),
+            torch.nn.ReLU(),
+            torch.nn.Linear(32, 4),
             torch.nn.Sigmoid(),
         )
 
