@@ -5,6 +5,7 @@ import argparse
 import cv2
 import logging
 import numpy as np
+import os.path
 import torch
 import signal
 import sys
@@ -16,6 +17,7 @@ from PIL import Image
 from laughing_person import LaughingPerson
 
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -25,16 +27,31 @@ def cleanup(dxD, cap):
     cap.release()
     cv2.destroyAllWindows()
 
+save_map = {
+    ord("p"): "tp",
+    ord("f"): "fp",
+    ord("n"): "fn",
+}
+
+
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=str)
     parser.add_argument("--capture", type=int)
+    parser.add_argument("--save-dir", type=str, default=".")
     args = parser.parse_args()
 
     print("xD")
     print("1.0.2")
+
+    print()
+    print("""
+    p - true positive
+    f - false positive
+    n - false negative
+    """)
 
     if args.checkpoint is None:
         logger.error("Checkpoint not specified... aborting")
@@ -50,7 +67,7 @@ if __name__ == "__main__":
         logger.error("Cannot open capture device... aborting")
         sys.exit(1)
 
-    xD = LaughingPerson(cap)
+    xD = LaughingPerson(cap, args.checkpoint)
 
     signal.signal(signal.SIGINT, lambda sig, frame: cleanup(xD, cap))
 
@@ -59,7 +76,19 @@ if __name__ == "__main__":
 
         cv2.imshow("dxD", frame)
 
-        if cv2.waitKey(1) == ord("q"):
+        c = cv2.waitKey(1)
+
+        if c in save_map:
+            label = save_map[c]
+            now = int(datetime.now().timestamp())
+            fname = os.path.join(
+                args.save_dir,
+                f"dxD-{now}-{label}.jpg"
+            )
+            logger.info(f"Saving frame to \"{fname}\"")
+            cv2.imwrite(fname, xD.last_read[1])
+        elif c == ord("q"):
+            logger.info("Quitting...")
             break
 
     cleanup(xD, cap)
