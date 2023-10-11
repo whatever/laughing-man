@@ -70,10 +70,7 @@ def load_label(label_path):
 def dataset(partition, n=None):
     """Yield (image, bounding box) from a partition of the dataset"""
 
-    print("<<")
     files = list(glob(f"augmented-data/{partition}/images/*.jpg"))
-    print(files)
-    print(">>>")
 
     if n is not None:
         files = files[:n]
