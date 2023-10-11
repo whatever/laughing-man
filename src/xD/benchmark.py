@@ -88,7 +88,7 @@ def draw_text(img, text,
 
     return text_size
 
-if __name__ == "__main__":
+def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoints", nargs="+", type=str)

@@ -209,7 +209,8 @@ def main():
         last_loca_loss = 0.0
         last_face_loss = 0.0
 
-        for imgs, bbox in dataset("train", n=5):
+        # XXX: Use command line arg instead here
+        for imgs, bbox in dataset("train"):
 
             _, img = imgs
 

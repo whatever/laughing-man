@@ -16,8 +16,7 @@ from glob import glob
 from PIL import Image
 
 
-if __name__ == "__main__":
-
+def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--num-augmentations", type=int, default=10)
