@@ -2,13 +2,17 @@ import torch
 import torchvision
 import torchvision.models.vgg as vgg
 
+
+DEVICE = "cpu"
+
+
 class IsMattModule(torch.nn.Module):
 
     def __init__(self, freeze_vgg=True):
 
         super(IsMattModule, self).__init__()
 
-        self.vgg16 = torchvision.models.vgg16(weights=vgg.VGG16_Weights.DEFAULT).to("cuda")
+        self.vgg16 = torchvision.models.vgg16(weights=vgg.VGG16_Weights.DEFAULT).to(DEVICE)
 
         for p in self.vgg16.parameters():
             p.requires_grad = freeze_vgg

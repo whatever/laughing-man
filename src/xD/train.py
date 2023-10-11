@@ -21,8 +21,6 @@ from torchvision import transforms
 from datetime import datetime
 from PIL import Image
 
-torch.set_default_device('cuda')
-
 from glob import glob
 
 import warnings
@@ -30,6 +28,12 @@ warnings.filterwarnings('ignore', category=UserWarning, message='TypedStorage is
 
 import xD
 import xD.model
+
+
+DEVICE = "cpu"
+
+
+torch.set_default_device(DEVICE)
 
 
 def get_label_fname(image_fname):
@@ -47,7 +51,7 @@ def load_image(image_path):
         arr = xD.crop(arr)
         arr = xD.transform(arr)
         arr = torch.unsqueeze(arr, 0)
-        arr = arr.cuda()
+        arr = arr.to(DEVICE)
         return img, arr
 
 

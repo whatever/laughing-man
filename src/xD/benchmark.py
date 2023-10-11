@@ -21,6 +21,9 @@ from PIL import Image
 from train import dataset, get_label_fname, load_label
 from train import load_image
 
+
+DEVICE = "cpu"
+
 face_cascade = cv2.CascadeClassifier('capture-images/haarcascade_frontalface_default.xml')
 
 
@@ -104,7 +107,7 @@ def main():
         checkpoint = torch.load(model_fname)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
-        model = model.cuda()
+        model = model.to(DEVICE)
 
         # logging.info("Validating model %s", model_fname)
 

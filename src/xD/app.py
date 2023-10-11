@@ -7,13 +7,19 @@ from xD.model import IsMattModule
 import xD
 
 
+DEVICE = "cpu"
+
+
 class LaughingPerson(object):
     """Run a loop that captures frames from a camera and blocks faces"""
 
     def __init__(self, cap, model_path):
         """Initialize"""
-        self.model = IsMattModule().to("cuda")
-        state = torch.load(model_path)
+        self.model = IsMattModule().to(DEVICE)
+        state = torch.load(
+            model_path,
+            map_location=DEVICE,
+        )
         self.model.load_state_dict(state["model_state_dict"])
         self.model.eval()
         self.cap = cap
@@ -39,7 +45,7 @@ class LaughingPerson(object):
         # PIL RGB -> Tensor
         with torch.no_grad():
             x = xD.transform(x_img)
-            x = torch.unsqueeze(x, 0).cuda()
+            x = torch.unsqueeze(x, 0).to(DEVICE)
             face, bbox = self.model(x)
             face = float(face[0][0])
 
