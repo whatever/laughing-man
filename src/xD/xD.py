@@ -14,7 +14,7 @@ from datetime import timedelta
 from datetime import datetime
 from PIL import Image
 
-from laughing_person import LaughingPerson
+from xD.app import LaughingPerson
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -23,7 +23,6 @@ logger.setLevel(logging.INFO)
 
 def cleanup(dxD, cap):
     print("Leaving happily...")
-    dxD.living = False
     cap.release()
     cv2.destroyAllWindows()
 
@@ -35,7 +34,7 @@ save_map = {
 
 
 
-if __name__ == "__main__":
+def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=str)
