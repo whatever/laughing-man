@@ -13,7 +13,6 @@ import sys
 from datetime import timedelta
 from datetime import datetime
 from PIL import Image
-
 from xD.app import LaughingPerson
 
 
@@ -21,10 +20,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 def cleanup(dxD, cap):
     print("Leaving happily...")
     cap.release()
     cv2.destroyAllWindows()
+
 
 save_map = {
     ord("p"): "tp",
