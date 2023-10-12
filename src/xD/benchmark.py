@@ -3,7 +3,6 @@
 
 import argparse
 import cv2
-import laughing_person as lp
 import logging
 import json
 import matplotlib.pyplot as plot
@@ -12,14 +11,15 @@ import numpy as np
 import random
 import signal
 import torch
+import xD
 
 
 from datetime import datetime
 from datetime import timedelta
 from glob import glob
 from PIL import Image
-from train import dataset, get_label_fname, load_label
-from train import load_image
+from xD.train import dataset, get_label_fname, load_label, load_image
+
 
 face_cascade = cv2.CascadeClassifier('capture-images/haarcascade_frontalface_default.xml')
 
@@ -88,7 +88,7 @@ def draw_text(img, text,
 
     return text_size
 
-if __name__ == "__main__":
+def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoints", nargs="+", type=str)
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    model = lp.IsMattModule()
+    model = xD.model.IsMattModule()
 
     for model_fname in args.checkpoints:
 
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         checkpoint = torch.load(model_fname)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
-        model = model.cuda()
+        model = model.to(xD.DEVICE)
 
         # logging.info("Validating model %s", model_fname)
 

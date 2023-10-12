@@ -4,7 +4,6 @@
 import albumentations as alb
 import argparse
 import cv2
-import laughing_person as lp
 import logging
 import matplotlib.pyplot as plot
 import numpy as np
@@ -22,12 +21,19 @@ from torchvision import transforms
 from datetime import datetime
 from PIL import Image
 
-torch.set_default_device('cuda')
-
 from glob import glob
 
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, message='TypedStorage is deprecated')
+
+import xD
+import xD.model
+
+
+from xD import DEVICE
+
+
+torch.set_default_device(DEVICE)
 
 
 def get_label_fname(image_fname):
@@ -42,10 +48,10 @@ def load_image(image_path):
     with Image.open(image_path) as img:
         arr = img.copy()
         arr = arr.convert("RGB")
-        arr = lp.crop(arr)
-        arr = lp.transform(arr)
+        arr = xD.crop(arr)
+        arr = xD.transform(arr)
         arr = torch.unsqueeze(arr, 0)
-        arr = arr.cuda()
+        arr = arr.to(DEVICE)
         return img, arr
 
 
@@ -121,7 +127,7 @@ def display_benchmark(model, samples):
         for imgs, y in samples:
 
             o, img = imgs
-            o = lp.crop(o)
+            o = xD.crop(o)
 
             y_hat = model(img)
 
@@ -136,22 +142,23 @@ def display_benchmark(model, samples):
             ))
 
         for i in range(2):
-            lp.cv2_imshow(images)
+            xD.cv2_imshow(images)
             cv2.waitKey(333)
 
 
 
 
-if __name__ == "__main__":
-
+def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--checkpoint", type=str, default=None)
+    parser.add_argument("--checkpoint", type=str, required=True)
     parser.add_argument("--display", action="store_true")
     args = parser.parse_args()
 
-    model = lp.IsMattModule(freeze_vgg=False)
+    print(args)
+
+    model = xD.model.IsMattModule(freeze_vgg=False)
 
     optim = torch.optim.Adam(
         model.parameters(),
@@ -203,6 +210,7 @@ if __name__ == "__main__":
         last_loca_loss = 0.0
         last_face_loss = 0.0
 
+        # XXX: Use command line arg instead here
         for imgs, bbox in dataset("train"):
 
             _, img = imgs

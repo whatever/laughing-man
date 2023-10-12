@@ -3,11 +3,11 @@
 
 import argparse
 import json
-import laughing_person as lp
 import numpy as np
 import os.path
 import random
 import shutil
+import xD
 
 
 
@@ -16,8 +16,7 @@ from glob import glob
 from PIL import Image
 
 
-if __name__ == "__main__":
-
+def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--num-augmentations", type=int, default=10)
@@ -105,7 +104,7 @@ if __name__ == "__main__":
         img = Image.open(item["image_fname"]).convert("RGB")
 
         for i in range(33):
-            res = lp.augmentor(
+            res = xD.augmentor(
                 image=np.array(img),
                 bboxes=[item["bbox"]],
                 class_labels=[item["class"]],
