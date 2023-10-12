@@ -30,7 +30,7 @@ import xD
 import xD.model
 
 
-DEVICE = "cpu"
+from xD import DEVICE
 
 
 torch.set_default_device(DEVICE)

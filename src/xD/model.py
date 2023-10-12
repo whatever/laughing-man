@@ -3,7 +3,7 @@ import torchvision
 import torchvision.models.vgg as vgg
 
 
-DEVICE = "cpu"
+from xD import DEVICE
 
 
 class IsMattModule(torch.nn.Module):

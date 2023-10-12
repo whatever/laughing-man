@@ -7,6 +7,9 @@ from torchvision import transforms
 import PIL
 
 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+
 def get_label_fname(image_fname):
     return (
         image_fname
