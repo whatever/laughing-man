@@ -3,7 +3,7 @@
 ## Start capture images and filtering out laughing person's face
 
 ```bash
-pip3 install "xD @ git+ssh://github.com/whatever/laughing_person/"
+pip3 install git+https://github.com/whatever/laughing_person.git
 xD
 ```
 
