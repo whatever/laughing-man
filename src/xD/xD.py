@@ -98,7 +98,7 @@ def main():
 
     subparsers = parser.add_subparsers(dest="command")
 
-    parser.add_argument("-c", "--checkpoint", type=str, required=True, help="path to checkpoint file")
+    parser.add_argument("-c", "--checkpoint", type=str, help="path to checkpoint file")
     parser.add_argument("-d", "--device", type=int, default=0, help="device number to use")
     parser.add_argument("-s", "--save-dir", type=str, default=".", help="path to directory to save image captures")
 

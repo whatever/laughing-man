@@ -14,6 +14,8 @@ import random
 import torch
 import torchvision
 
+from torch.utils.data import Dataset, DataLoader
+
 from collections import defaultdict
 
 from torchvision import transforms
@@ -27,78 +29,19 @@ import warnings
 warnings.filterwarnings('ignore', category=UserWarning, message='TypedStorage is deprecated')
 
 import xD
+import xD.data
 import xD.model
 
 
 from xD import DEVICE
 
 
-torch.set_default_device(DEVICE)
-
-
-def get_label_fname(image_fname):
-    return (
-        image_fname
-        .replace("images", "labels")
-        .replace(".jpg", ".json")
-    )
-
-
-def load_image(image_path):
-    with Image.open(image_path) as img:
-        arr = img.copy()
-        arr = arr.convert("RGB")
-        arr = xD.crop(arr)
-        arr = xD.transform(arr)
-        arr = torch.unsqueeze(arr, 0)
-        arr = arr.to(DEVICE)
-        return img, arr
-
-
-def load_label(label_path):
-    if not os.path.exists(label_path):
-        return (
-            torch.tensor([[0]], dtype=torch.uint8),
-            torch.tensor([[0.]*4], dtype=torch.float32),
-        )
-    with open (label_path, "r") as fi:
-        label = json.load(fi)
-    bbox = label["bbox"] if label["class"] == 1 else [[0.]*4]
-    bbox = bbox if bbox else [0.0]*4
-    return (
-        torch.tensor([[label["class"]]], dtype=torch.uint8),
-        torch.tensor(bbox, dtype=torch.float32),
-    )
-
-
-def dataset(partition, n=None):
-    """Yield (image, bounding box) from a partition of the dataset"""
-
-    files = list(glob(f"augmented-data/{partition}/images/*.jpg"))
-
-    if n is not None:
-        files = files[:n]
-
-    random.shuffle(files)
-
-    for image_fname in files:
-        label_fname = get_label_fname(image_fname)
-
-        if not os.path.exists(image_fname):
-            logging.warn("Missing image:", image_fname, "... skipping")
-            continue
-
-        if not os.path.exists(label_fname):
-            logging.warn("Missing image:", label_fname, "... skipping")
-            continue
-
-        yield load_image(image_fname), load_label(label_fname)
-
+torch.set_default_device(xD.DEVICE)
 
 
 def loca_loss(y_hat, y):
     diff = torch.square(y_hat[:, :2] - y[:, :2])
-    summa = torch.sum(diff, dim=-1)
+    summa = torch.sum(diff)
 
     w_true = y[:, 2] - y[:, 0] 
     h_true = y[:, 3] - y[:, 1] 
@@ -106,7 +49,7 @@ def loca_loss(y_hat, y):
     w_pred = y_hat[:, 2] - y_hat[:, 0] 
     h_pred = y_hat[:, 3] - y_hat[:, 1] 
 
-    diff_wh = torch.sum(torch.square(w_true - w_pred), dim=-1) + torch.sum(torch.square(h_true - h_pred), dim=-1)
+    diff_wh = torch.sum(torch.square(w_true - w_pred)) + torch.sum(torch.square(h_true - h_pred))
 
     return summa + diff_wh
 
@@ -195,19 +138,30 @@ def main(epochs, checkpoint, display):
         last_loca_loss = 0.0
         last_face_loss = 0.0
 
-        # XXX: Use command line arg instead here
-        for imgs, bbox in dataset("train", n=3):
+        data = xD.data.Dataset(
+            "augmented-data/train/images/",
+            "augmented-data/train/labels/",
+        )
 
-            _, img = imgs
+        data = DataLoader(data, batch_size=2)
+
+        # XXX: Use command line arg instead here
+        for sample in data:
+
+            x = sample["image"]
+            face = sample["face"]
+            bbox = sample["bbox"]
 
             optim.zero_grad()
 
-            y_hat_face, y_hat_loca = model(img)
+            y_hat_face, y_hat_loca = model(x)
 
-            # pos_loss = loca_loss(y_hat_loca, bbox[1])
-            pos_loss = torchvision.ops.distance_box_iou_loss(y_hat_loca, bbox[1])
-            fac_loss = torch.nn.functional.binary_cross_entropy(y_hat_face, bbox[0].float())
-            loss = 0.75*pos_loss + 0.25*fac_loss
+            # pos_loss = torchvision.ops.distance_box_iou_loss(y_hat_loca, bbox)
+            pos_loss = loca_loss(y_hat_loca, bbox)
+            fac_loss = torch.nn.functional.binary_cross_entropy(y_hat_face, face.float())
+
+            # loss = fac_loss
+            loss = pos_loss
 
             loss.backward()
             optim.step()

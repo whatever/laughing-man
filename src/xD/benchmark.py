@@ -18,7 +18,6 @@ from datetime import datetime
 from datetime import timedelta
 from glob import glob
 from PIL import Image
-from xD.train import dataset, get_label_fname, load_label, load_image
 
 
 face_cascade = cv2.CascadeClassifier('capture-images/haarcascade_frontalface_default.xml')
