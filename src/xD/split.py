@@ -16,12 +16,7 @@ from glob import glob
 from PIL import Image
 
 
-def main():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--num-augmentations", type=int, default=10)
-    parser.add_argument("-v", "--verbose", action="store_true")
-    args = parser.parse_args()
+def main(num_augmentations):
 
     # To make the the run immutable
     random.seed(420)
@@ -39,7 +34,7 @@ def main():
     negative_image_fnames = random.sample([
         fname
         for fname in glob("images/image_*.jpg")
-    ], len(positive_image_fnames))
+    ], 0)
 
     image_fnames = sorted(positive_image_fnames + negative_image_fnames)
 
@@ -103,7 +98,7 @@ def main():
 
         img = Image.open(item["image_fname"]).convert("RGB")
 
-        for i in range(33):
+        for i in range(num_augmentations):
             res = xD.augmentor(
                 image=np.array(img),
                 bboxes=[item["bbox"]],

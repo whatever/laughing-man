@@ -95,13 +95,6 @@ def dataset(partition, n=None):
         yield load_image(image_fname), load_label(label_fname)
 
 
-with open("imagenet_class_index.json", "r") as fi:
-    LABELS =  {
-        int(k): v[-1]
-        for k, v in json.load(fi).items()
-    }
-
-
 
 def loca_loss(y_hat, y):
     diff = torch.square(y_hat[:, :2] - y[:, :2])
@@ -148,15 +141,7 @@ def display_benchmark(model, samples):
 
 
 
-def main():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--checkpoint", type=str, required=True)
-    parser.add_argument("--display", action="store_true")
-    args = parser.parse_args()
-
-    print(args)
+def main(epochs, checkpoint, display):
 
     model = xD.model.IsMattModule(freeze_vgg=False)
 
@@ -167,11 +152,11 @@ def main():
 
     last_epoch = 0 
 
-    if args.checkpoint is None:
+    if checkpoint is None:
         pass
 
-    elif args.checkpoint and os.path.exists(args.checkpoint):
-        checkpoint = torch.load(args.checkpoint)
+    elif checkpoint and os.path.exists(checkpoint):
+        checkpoint = torch.load(checkpoint)
         model.load_state_dict(checkpoint["model_state_dict"])
         optim.load_state_dict(checkpoint["optim_state_dict"])
         last_epoch = checkpoint["epoch"]
@@ -187,16 +172,16 @@ def main():
 
         last_epoch += 1
 
-    elif not os.path.exists(args.checkpoint):
-        logging.warning(f"checkpoint file {args.checkpoint} does not exist")
+    elif not os.path.exists(checkpoint):
+        logging.warning(f"checkpoint file {checkpoint} does not exist")
 
-    if args.display:
+    if display:
         samp = dataset("validate")
         samp = [next(samp) for _ in range(5)]
         display_benchmark(model, samp)
 
 
-    for epoch in range(last_epoch, last_epoch+args.epochs):
+    for epoch in range(last_epoch, last_epoch+epochs):
 
 
         now = datetime.now()
@@ -211,7 +196,7 @@ def main():
         last_face_loss = 0.0
 
         # XXX: Use command line arg instead here
-        for imgs, bbox in dataset("train"):
+        for imgs, bbox in dataset("train", n=3):
 
             _, img = imgs
 
@@ -239,16 +224,16 @@ def main():
 
         # Display some results
 
-        if args.display:
+        if display:
             samp = dataset("validate")
             samp = [next(samp) for _ in range(5)]
             display_benchmark(model, samp)
 
-    logging.info("Saving model %s", args.checkpoint)
+    logging.info("Saving model %s", checkpoint)
 
     torch.save({
         "epoch": epoch,
         "model_state_dict": model.state_dict(),
         "optim_state_dict": optim.state_dict(),
         "loss": last_loss,
-    }, args.checkpoint)
+    }, checkpoint)

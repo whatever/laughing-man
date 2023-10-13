@@ -68,8 +68,8 @@ def capture(cap):
             break
 
 
-def main():
-    cap = cv2.VideoCapture(0)
+def main(device):
+    cap = cv2.VideoCapture(device)
     capture(cap)
     signal.signal(signal.SIGINT, lambda sig, frame: cleanup(cap))
     cleanup(cap)
