@@ -1,5 +1,10 @@
 import argparse
 
+import xD.benchmark
+import xD.capture
+import xD.split
+
+
 def main():
 
     parser = argparse.ArgumentParser()
@@ -24,12 +29,16 @@ def main():
     args = parser.parse_args()
 
     if args.command == 'split':
-        print("SPLIT!")
+        xD.split.main(args.num_augmentations, args.verbose)
+
     elif args.command == 'benchmark':
-        print("BENCHMARK!")
+        xD.benchmark.main(args.checkpoints, args.validate_dir)
+
     elif args.command == 'capture':
-        print("CAPTURE!")
+        xD.capture.main()
+
     elif args.command == 'train':
-        print("TRAIN!")
+        xD.train.main(args.epochs, args.checkpoint, args.display)
+
     else:
         print("xD")

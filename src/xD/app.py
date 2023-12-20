@@ -58,7 +58,7 @@ class LaughingPerson(object):
         y_img = np.array(x_large_img)
         y_img = cv2.cvtColor(y_img, cv2.COLOR_RGB2BGR)
 
-        if face > 0.65:
+        if face > 0.95:
             cv2.rectangle(
                 y_img,
                 bbox[:2],

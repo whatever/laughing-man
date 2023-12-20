@@ -148,7 +148,7 @@ def display_benchmark(model, samples):
 
 
 
-def main():
+def main(epochs, checkpoint, display):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=10)
@@ -167,11 +167,11 @@ def main():
 
     last_epoch = 0 
 
-    if args.checkpoint is None:
+    if checkpoint is None:
         pass
 
-    elif args.checkpoint and os.path.exists(args.checkpoint):
-        checkpoint = torch.load(args.checkpoint)
+    elif checkpoint and os.path.exists(checkpoint):
+        checkpoint = torch.load(checkpoint)
         model.load_state_dict(checkpoint["model_state_dict"])
         optim.load_state_dict(checkpoint["optim_state_dict"])
         last_epoch = checkpoint["epoch"]
@@ -187,16 +187,16 @@ def main():
 
         last_epoch += 1
 
-    elif not os.path.exists(args.checkpoint):
-        logging.warning(f"checkpoint file {args.checkpoint} does not exist")
+    elif not os.path.exists(checkpoint):
+        logging.warning(f"checkpoint file {checkpoint} does not exist")
 
-    if args.display:
+    if display:
         samp = dataset("validate")
         samp = [next(samp) for _ in range(5)]
         display_benchmark(model, samp)
 
 
-    for epoch in range(last_epoch, last_epoch+args.epochs):
+    for epoch in range(last_epoch, last_epoch+epochs):
 
 
         now = datetime.now()
@@ -239,16 +239,16 @@ def main():
 
         # Display some results
 
-        if args.display:
+        if display:
             samp = dataset("validate")
             samp = [next(samp) for _ in range(5)]
             display_benchmark(model, samp)
 
-    logging.info("Saving model %s", args.checkpoint)
+    logging.info("Saving model %s", checkpoint)
 
     torch.save({
         "epoch": epoch,
         "model_state_dict": model.state_dict(),
         "optim_state_dict": optim.state_dict(),
         "loss": last_loss,
-    }, args.checkpoint)
+    }, checkpoint)

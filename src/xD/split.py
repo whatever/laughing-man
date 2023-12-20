@@ -16,12 +16,7 @@ from glob import glob
 from PIL import Image
 
 
-def main():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--num-augmentations", type=int, default=10)
-    parser.add_argument("-v", "--verbose", action="store_true")
-    args = parser.parse_args()
+def main(num_augmentations, verbose):
 
     # To make the the run immutable
     random.seed(420)

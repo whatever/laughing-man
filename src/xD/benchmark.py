@@ -88,17 +88,11 @@ def draw_text(img, text,
 
     return text_size
 
-def main():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoints", nargs="+", type=str)
-    parser.add_argument("--validate-dir", type=str, required=True)
-    args = parser.parse_args()
-
+def main(checkpoints, validate_dir):
 
     model = xD.model.IsMattModule()
 
-    for model_fname in args.checkpoints:
+    for model_fname in checkpoints:
 
         # logger.info("Loading model %s", model_fname)
         checkpoint = torch.load(model_fname)
@@ -108,7 +102,7 @@ def main():
 
         # logging.info("Validating model %s", model_fname)
 
-        examples = sorted(fname for fname in glob(f"{args.validate_dir}/*.jpg"))
+        examples = sorted(fname for fname in glob(f"{validate_dir}/*.jpg"))
         random.shuffle(examples)
         examples = examples[0:10]
 
