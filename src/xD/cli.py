@@ -5,6 +5,7 @@ import xD.benchmark
 import xD.capture
 import xD.split
 import xD.train
+import xD.xD
 
 
 def main():
@@ -48,4 +49,4 @@ def main():
     elif args.command == "train":
         xD.train.main(args.epochs, args.checkpoint, args.display)
     else:
-        render(args.checkpoint, args.device, args.save_dir)
+        xD.xD.render(args.checkpoint, args.device, args.save_dir)
