@@ -33,7 +33,7 @@ class LaughingPerson(object):
         self.last_read = (ret, frame)
 
         if not ret:
-            return ret, frame, None
+            return ret, frame
 
         # CV2 BGR -> PIL RGB
         x_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
