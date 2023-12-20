@@ -51,6 +51,8 @@ def main():
     p - true positive
     f - false positive
     n - false negative
+
+    q - quit
     """)
 
     if args.checkpoint is None:
