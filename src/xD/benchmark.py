@@ -87,39 +87,43 @@ def draw_text(img, text,
 
     return text_size
 
-def main(checkpoints, validate_dir):
+def main(checkpoints, images_dir, labels_dir):
 
     model = xD.model.IsMattModule()
 
     for model_fname in checkpoints:
 
         # logger.info("Loading model %s", model_fname)
-        checkpoint = torch.load(model_fname)
+        checkpoint = torch.load(
+            model_fname,
+            map_location=torch.device(xD.DEVICE),
+        )
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
         model = model.to(xD.DEVICE)
 
         # logging.info("Validating model %s", model_fname)
 
-        examples = sorted(fname for fname in glob(f"{validate_dir}/*.jpg"))
-        random.shuffle(examples)
-        examples = examples[0:10]
 
+        examples = xD.data.Dataset(images_dir, labels_dir)
+        examples = torch.utils.data.DataLoader(examples, batch_size=1, shuffle=True)
 
         images = []
 
-        for image_fname in examples:
-            label_fname = get_label_fname(image_fname)
+        for ex in examples:
 
-            # y
-            is_face_actual, actual_bb = load_label(label_fname)
-            is_face_actual = is_face_actual[0].cpu().numpy()
-            actual_bb = actual_bb[0].cpu().numpy()
+            if ex["idx"] == 5:
+                break
+
+            img = ex["image"]
+            y_face = ex["face"]
+            y_bbox = ex["bbox"]
+            x = ex["image"]
+
 
             # ŷ
             with torch.no_grad():
-                img, arr = load_image(image_fname)
-                face, predicted_bb = model(arr)
+                face, predicted_bb = model(x)
                 predicted_bb = predicted_bb[0].cpu().numpy()
 
             w, h = img.size

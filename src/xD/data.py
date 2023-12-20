@@ -27,12 +27,15 @@ class Dataset(Dataset):
     @staticmethod
     def _load_image(image_path):
         with Image.open(image_path) as img:
-            arr = img.copy()
-            arr = arr.convert("RGB")
-            arr = xD.crop(arr)
-            arr = xD.transform(arr)
+            img = img.copy()
+            img = img.convert("RGB")
+            img = xD.crop(img)
+
+            print(type(img))
+
+            arr = xD.transform(img)
             arr = arr.to(xD.DEVICE)
-        return arr
+        return img, arr
 
     def __len__(self):
         """Return number of images that we're doing"""
@@ -44,7 +47,9 @@ class Dataset(Dataset):
         lab_fname = os.path.basename(img_fname).replace("jpg", "json")
         lab_fname = os.path.join(self.label_dir, lab_fname)
 
-        arr = Dataset._load_image(img_fname)
+        img, arr = Dataset._load_image(img_fname)
+
+        print("3", type(img))
 
         if not os.path.exists(lab_fname):
             label = {}
@@ -55,6 +60,8 @@ class Dataset(Dataset):
                     label["bbox"] = label["bbox"][0]
 
         return {
+            "idx": idx,
+            "image": img,
             "fname": img_fname,
             "image": arr,
             "face": torch.tensor([label.get("class", 0)]),
